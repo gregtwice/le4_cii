@@ -217,6 +217,7 @@ void read_internal_word(int sockfd, int addr, int size) {
         printf("%X ", MESSAGE_BUFFER[i]);
     }
 }
+
 /**
  * Ecoute la socket en attente d'une requête de l'automate et renvoie un cr OK
  * @param sockfd la socket tcp permettant de dialoguer avec l'automate
