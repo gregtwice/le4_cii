@@ -1,21 +1,21 @@
 #include <stdio.h>
-#include <netinet/in.h>
 #include <stdlib.h>
 #include <string.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 
 #include "constants.h"
+#include "utils.h"
 
 #define MAX 80
-#define PORT 502
+#define PORT 8080
 #define SA struct sockaddr
 
-#define STATION_EMETEUR 50
-#define RESEAU_EMETEUR 0x80
-#define FIPWAY_ID 0x16
-#define AUTOMATE_TRAIN 0x80
+
+
+int initSocket(int sockfd);
 
 /**
  * Cette fonction permet d'ajouter le préfixe MODBUS au message en ajoutant les infos et la taille du message
@@ -43,25 +43,13 @@ void encapsulation(unsigned char *NPDU, unsigned char *requete, int bufferSize) 
  * @param sockfd la socket tcp permettant de dialoguer avec l'automate
  */
 void run(int sockfd) {
-    unsigned char NPDUXWAY[MAX];
-    memset(NPDUXWAY, 0, sizeof(NPDUXWAY));
-    // xway
-    NPDUXWAY[0] = 0xF0;
-    NPDUXWAY[1] = STATION_EMETEUR;
-    NPDUXWAY[2] = RESEAU_EMETEUR;
-    NPDUXWAY[3] = FIPWAY_ID; //reseau cible
-    NPDUXWAY[4] = AUTOMATE_TRAIN; //machine cible (train)
-    //npdu
-    NPDUXWAY[5] = UNITE_RUN; //Code requete UNITE_RUN
-    NPDUXWAY[6] = 6;
-    unsigned char requete[7 + strlen(NPDUXWAY)];
-    encapsulation(NPDUXWAY, requete, 7);
+    tramexway_t tramexway;
+    prefil_trame(0xF0,&tramexway,UNITE_RUN);
+    send_request(sockfd,&tramexway);
     printf("sent bytes :");
-    for (int i = 7; i < 14; i++) {
-        printf("%X ", requete[i]);
-    }
+    print_hex_array(tramexway);
     printf("\n");
-    write(sockfd, requete, sizeof(requete));
+
     unsigned char readBuf[MAX];
     memset(readBuf, 0, MAX);
     read(sockfd, readBuf, MAX);
@@ -76,25 +64,14 @@ void run(int sockfd) {
  * @param sockfd la socket tcp permettant de dialoguer avec l'automate
  */
 void stop(int sockfd) {
-    unsigned char NPDUXWAY[MAX];
-    memset(NPDUXWAY, 0, sizeof(NPDUXWAY));
-    // xway
-    NPDUXWAY[0] = 0xF0;
-    NPDUXWAY[1] = STATION_EMETEUR;
-    NPDUXWAY[2] = RESEAU_EMETEUR;
-    NPDUXWAY[3] = FIPWAY_ID; //reseau cible
-    NPDUXWAY[4] = AUTOMATE_TRAIN; //machine cible (train)
-    //npdu
-    NPDUXWAY[5] = UNITE_STOP; //Code requete UNITE_RUN
-    NPDUXWAY[6] = 6;
-    unsigned char requete[7 + strlen(NPDUXWAY)];
-    encapsulation(NPDUXWAY, requete, 7);
+
+    tramexway_t tramexway;
+    prefil_trame(0xF0,&tramexway,UNITE_STOP);
+    send_request(sockfd,&tramexway);
     printf("sent bytes :");
-    for (int i = 7; i < 14; i++) {
-        printf("%X ", requete[i]);
-    }
+    print_hex_array(tramexway);
     printf("\n");
-    write(sockfd, requete, sizeof(requete));
+
     unsigned char readBuf[MAX];
     memset(readBuf, 0, MAX);
     read(sockfd, readBuf, MAX);
@@ -261,7 +238,25 @@ void listen_to_api(int sockfd) {
 
 int main(int argc, char *argv[]) {
 
-    int sockfd;
+    int sockfd =1;
+    sockfd = initSocket(sockfd);
+
+
+    stop(sockfd);
+    getchar();
+    run(sockfd);
+//    unsigned int data[3] = {0x2048, 0x1024, 0xffff};
+//    write_internal_word(sockfd, 100, sizeof(data), data);
+//    unsigned int data2[1] = {14};
+//    write_internal_word(sockfd, 50, 1, data2);
+//    read_internal_word(sockfd, 100, 3);
+//    usleep(500);
+//    listen_to_api(sockfd);
+    getchar();
+    close(sockfd);
+}
+
+int initSocket(int sockfd) {
     struct sockaddr_in servaddr;
 
     // socket create and varification
@@ -275,7 +270,8 @@ int main(int argc, char *argv[]) {
 
     // assign IP, PORT
     servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr("10.22.205.202");
+    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+//    servaddr.sin_addr.s_addr = inet_addr("10.22.205.202");
     servaddr.sin_port = htons(PORT);
 
     // connect the client socket to server socket
@@ -284,17 +280,5 @@ int main(int argc, char *argv[]) {
         //exit(0);
     } else
         printf("connected to the server..\n");
-
-
-//    stop(sockfd);
-//    run(sockfd);
-//    unsigned int data[3] = {0x2048, 0x1024, 0xffff};
-//    write_internal_word(sockfd, 100, sizeof(data), data);
-    unsigned int data2[1] = {14};
-    write_internal_word(sockfd, 50, 1, data2);
-//    read_internal_word(sockfd, 100, 3);
-//    usleep(500);
-    listen_to_api(sockfd);
-    getchar();
-    close(sockfd);
+    return sockfd;
 }
