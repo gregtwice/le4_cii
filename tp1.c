@@ -14,7 +14,6 @@
 #define SA struct sockaddr
 
 
-
 int initSocket(int sockfd);
 
 /**
@@ -44,8 +43,8 @@ void encapsulation(unsigned char *NPDU, unsigned char *requete, int bufferSize) 
  */
 void run(int sockfd) {
     tramexway_t tramexway;
-    prefil_trame(0xF0,&tramexway,UNITE_RUN);
-    send_request(sockfd,&tramexway);
+    prefil_trame_3niveaux(&tramexway, UNITE_RUN);
+    send_request(sockfd, &tramexway);
     printf("sent bytes :");
     print_hex_array(tramexway);
     printf("\n");
@@ -66,8 +65,8 @@ void run(int sockfd) {
 void stop(int sockfd) {
 
     tramexway_t tramexway;
-    prefil_trame(0xF0,&tramexway,UNITE_STOP);
-    send_request(sockfd,&tramexway);
+    prefil_trame_3niveaux(&tramexway, UNITE_STOP);
+    send_request(sockfd, &tramexway);
     printf("sent bytes :");
     print_hex_array(tramexway);
     printf("\n");
@@ -89,46 +88,21 @@ void stop(int sockfd) {
  * @param data le tableau contenant les éléments à écrire
  */
 void write_internal_word(int sockfd, int addr, int size, unsigned int *data) {
-    unsigned char NPDUXWAY[MAX];
-    memset(NPDUXWAY, 0, sizeof(NPDUXWAY));
-    // xway
-    NPDUXWAY[0] = 0xF0;
-    NPDUXWAY[1] = STATION_EMETEUR;
-    NPDUXWAY[2] = RESEAU_EMETEUR;
-    NPDUXWAY[3] = FIPWAY_ID; //reseau cible
-    NPDUXWAY[4] = AUTOMATE_TRAIN; //machine cible (train)
-    //npdu
-    NPDUXWAY[5] = UNITE_WRITE_OBJECT;
-    NPDUXWAY[6] = 6;
-    NPDUXWAY[7] = 0x68; // segment des numériques
-    NPDUXWAY[8] = 0x07; // type mot interne
-
-    // séparation du nombre en 2 octets
-    NPDUXWAY[9] = addr & 0x00FF;
-    NPDUXWAY[10] = (addr & 0xFF00) >> 8; // on doit décaler de 8 pour pouvoir rentrer dans la taille de l'uchar
-
-    NPDUXWAY[11] = size & 0x00FF;
-    NPDUXWAY[12] = (size & 0xFF00) >> 8;
-    int bufferSize = 13;
+    puts("\n\n-----------WRITE-----------\n\n");
+    tramexway_t tramexway;
+    prefil_trame_3niveaux(&tramexway, UNITE_WRITE_OBJECT);
+    tramexway.trame[7] = 0x68; // segment des numériques
+    tramexway.trame[8] = 0x07; // type mot interne
+    add_two_bites_variable(&tramexway, 9, addr);
+    add_two_bites_variable(&tramexway, 11, size);
+    tramexway.length += 4;
     for (int i = 0; i < size; ++i) {
-        NPDUXWAY[(13 + (i * 2))] = (char) (data[i] & 0x00FF);
-        NPDUXWAY[(13 + (i * 2) + 1)] = (char) ((data[i] & 0xFF00) >> 8);
-        bufferSize += 2;
+        add_two_bites_variable(&tramexway, (int) tramexway.length, (int) data[i]);
+        tramexway.length += 2;
     }
-    printf("buffersize : %d\n", bufferSize);
-
-    unsigned char requete[7 + bufferSize];
-    encapsulation(NPDUXWAY, requete, bufferSize);
-    printf("sent bytes :");
-    for (int i = 7; i < bufferSize + 7; i++) {
-        printf("%X ", requete[i]);
-    }
-    printf("\n");
-    for (int i = 0; i < bufferSize + 7; i++) {
-        printf("%X ", requete[i]);
-    }
-    printf("\n");
-    write(sockfd, requete, sizeof(requete));
+    printf("\nSent bytes :");
+    print_hex_array(tramexway);
+    send_request(sockfd, &tramexway);
     // nouveau buffer pour lire le CR de l'automate
     unsigned char readBuf[MAX];
     memset(readBuf, 0, MAX);
@@ -137,6 +111,7 @@ void write_internal_word(int sockfd, int addr, int size, unsigned int *data) {
     for (int i = 7; i < 16; i++) {
         printf("%X ", readBuf[i]);
     }
+    puts("\n\n--------END WRITE----------\n\n");
 }
 
 /**
@@ -147,15 +122,17 @@ void write_internal_word(int sockfd, int addr, int size, unsigned int *data) {
  */
 void read_internal_word(int sockfd, int addr, int size) {
     printf("\n\n-----------READ----------\n\n");
-    unsigned char NPDUXWAY[MAX];
+    tramexway_t tramexway;
+    prefil_trame_3niveaux(&tramexway, UNITE_READ_OBJECT);
+/*    unsigned char NPDUXWAY[MAX];
     memset(NPDUXWAY, 0, sizeof(NPDUXWAY));
-    // xway
+     xway
     NPDUXWAY[0] = 0xF0;
     NPDUXWAY[1] = STATION_EMETEUR;
     NPDUXWAY[2] = RESEAU_EMETEUR;
     NPDUXWAY[3] = FIPWAY_ID; //reseau cible
     NPDUXWAY[4] = AUTOMATE_TRAIN; //machine cible (train)
-    //npdu
+    npdu
     NPDUXWAY[5] = UNITE_READ_OBJECT;
     NPDUXWAY[6] = 6;
     NPDUXWAY[7] = 0x68; // segment des numériques
@@ -164,18 +141,25 @@ void read_internal_word(int sockfd, int addr, int size) {
     NPDUXWAY[9] = addr & 0x00FF;
     NPDUXWAY[10] = addr & 0xFF00;
     NPDUXWAY[11] = size & 0x00FF;
-    NPDUXWAY[12] = size & 0xFF00;
+    NPDUXWAY[12] = size & 0xFF00;*/
     int bufferSize = 13;
+    tramexway.trame[7] = 0x68;
+    tramexway.trame[8] = 0x07;
+    add_two_bites_variable(&tramexway, 9, addr);
+    add_two_bites_variable(&tramexway, 11, size);
 
 
-    unsigned char requete[7 + bufferSize];
+/*    unsigned char requete[7 + bufferSize];
     encapsulation(NPDUXWAY, requete, bufferSize);
     printf("sent bytes :");
     for (int i = 7; i < bufferSize + 7; i++) {
         printf("%X ", requete[i]);
     }
     printf("\n");
-    write(sockfd, requete, sizeof(requete));
+    write(sockfd, requete, sizeof(requete));*/
+    print_hex_array(tramexway);
+    send_request(sockfd, &tramexway);
+
     unsigned char MODBUS_BUFFER[7];
     memset(MODBUS_BUFFER, 0, 7);
     read(sockfd, MODBUS_BUFFER, 7);
@@ -193,6 +177,8 @@ void read_internal_word(int sockfd, int addr, int size) {
     for (int i = 0; i < message_size; i++) {
         printf("%X ", MESSAGE_BUFFER[i]);
     }
+    printf("\n\n--------END READ--------\n\n");
+
 }
 
 /**
@@ -227,9 +213,9 @@ void listen_to_api(int sockfd) {
     REPONSE[2] = MESSAGE_BUFFER[4]; //
     REPONSE[3] = MESSAGE_BUFFER[1];
     REPONSE[4] = MESSAGE_BUFFER[2];
-    REPONSE[5] = 0x19;
+    REPONSE[5] = 0x19; // 5 niveaux
     REPONSE[6] = MESSAGE_BUFFER[6];
-    REPONSE[7] = 0xFE;
+    REPONSE[7] = 0xFE; // cr ok
 
     unsigned char requete[MAX];
     encapsulation(REPONSE, requete, 8);
@@ -238,15 +224,15 @@ void listen_to_api(int sockfd) {
 
 int main(int argc, char *argv[]) {
 
-    int sockfd =1;
+    int sockfd = 1;
     sockfd = initSocket(sockfd);
 
 
     stop(sockfd);
     getchar();
     run(sockfd);
-//    unsigned int data[3] = {0x2048, 0x1024, 0xffff};
-//    write_internal_word(sockfd, 100, sizeof(data), data);
+    unsigned int data[3] = {0x2048, 0x1024, 0xffff};
+    write_internal_word(sockfd, 100, sizeof(data) / sizeof(unsigned int), data);
 //    unsigned int data2[1] = {14};
 //    write_internal_word(sockfd, 50, 1, data2);
 //    read_internal_word(sockfd, 100, 3);

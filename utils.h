@@ -27,7 +27,8 @@ void send_request(int socket, tramexway_t *);
 
 void print_hex_array(tramexway_t tramexway);
 
-void prefil_trame(int adressage,tramexway_t* tramexway,unsigned char request_code);
+void prefil_trame_3niveaux(tramexway_t *tramexway, unsigned char request_code);
 
+void add_two_bites_variable(tramexway_t *,int index,int value);
 
 #endif //CII_UTILS_H

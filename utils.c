@@ -30,9 +30,9 @@ void print_hex_array(tramexway_t tramexway) {
     printf("\n");
 }
 
-void prefil_trame(int adressage, tramexway_t *tramexway, unsigned char request_code) {
-    memset(tramexway->trame,0,MAX_REQUEST_LENGTH);
-    tramexway->trame[0] = adressage;
+void prefil_trame_3niveaux(tramexway_t *tramexway, unsigned char request_code) {
+    memset(tramexway->trame, 0, MAX_REQUEST_LENGTH);
+    tramexway->trame[0] = 0xF0;
     tramexway->trame[1] = STATION_EMETEUR;
     tramexway->trame[2] = RESEAU_EMETEUR;
     tramexway->trame[3] = FIPWAY_ID; //reseau cible
@@ -41,6 +41,24 @@ void prefil_trame(int adressage, tramexway_t *tramexway, unsigned char request_c
     tramexway->trame[6] = 6;
     tramexway->length = 7;
 }
+
+void prefil_trame_5niveaux(tramexway_t *tramexway, const unsigned char * API_REQUEST) {
+    memset(tramexway->trame, 0, MAX_REQUEST_LENGTH);
+    tramexway->trame[0] = API_REQUEST[0];
+    tramexway->trame[1] = API_REQUEST[3]; // addr automate
+    tramexway->trame[2] = API_REQUEST[4];
+    tramexway->trame[3] = API_REQUEST[1]; // addr pc
+    tramexway->trame[4] = API_REQUEST[2];
+    tramexway->trame[5] = 0x19; // 5 niveaux
+    tramexway->trame[6] = API_REQUEST[6];
+    tramexway->trame[7] = 0xFE; // cr ok
+}
+
+void add_two_bites_variable(tramexway_t *tramexway, int index, int value) {
+    tramexway->trame[index] = value & 0x00FF;
+    tramexway->trame[index + 1] = (value >> 8);
+}
+
 
 
 
