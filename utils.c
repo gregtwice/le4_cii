@@ -59,6 +59,3 @@ void add_two_bites_variable(tramexway_t *tramexway, int index, int value) {
     tramexway->trame[index + 1] = (value >> 8);
 }
 
-
-
-

@@ -1,0 +1,52 @@
+# P Prendre Ressource [n] [...]
+# R Rendre Ressource [n] [...]
+# A Aiguillage [num] [b/d biais/droit]
+# T tronçon [num] [CR]
+# I inversion
+# L [variable]
+# F [A/T/I] [Addr] ex F A 101 = filtre des aiguillages = %MW101
+
+#id du train
+
+$ 1
+
+# adresses
+F A 51
+F T 61
+F I 71
+
+# instructions
+P 2 1 2		#prendre ressource r1 r2
+A 1 b		#demander aiguillage A1 -> biais
+T 10 100	#demander allumage TI0 -> cr C0
+A 20 b		#demander aiguillage tj0 -> biais
+A 10 b		#demander aiguillage A0 -> biais
+T 11 2		#demander allumage TI1 -> cr C2
+R 1 1		#rendre R1
+L 31		#ecouter cr -> C1
+R 1 2		#rendre R2
+T 11 2		#demander allumage TI1 -> cr 2
+P 2 3 4		#prendre ressource r3 r4
+A 17 b		#demander aiguillage A7 -> biais
+A 21 b		#demander aiguillage TJ1 -> biais
+T 26 32		#demander allumage t16 -> cr 32
+R 1 3		#rendre R3
+I 16		#demander inversion 50ms TI6 -> cr ok
+P 2 3 5		#prendre R3 et R5
+T 26 32		#demander allumage T16 -> cr 32
+L 31		#ecouter cr -> c31
+R 2 3 4		#rendre R3 et R4
+P 1 6		#demander R6
+T 27 21		#demander allumage t17 -> cr 21
+R 1 5		#rendre R5
+P 2 1 2		#demander R1 et R2
+A 20 b		#demander aiguillage tj0 -> biais
+A 10 b		#demander aiguillage A0 -> biais
+T 22 6		#demander allumage t12 -> cr 6
+R 1 6 		#rendre R6
+L 2			#ecouter cr 2
+R 1 2		#rendre R2
+A 11 b		#demander aiguillage A1 -> biais
+T 11 100	#demander allumage ti1 -> cr0
+R 1 1		#Rendre R1
+I 10		#demander inversion 50ms TI0 -> cr ok

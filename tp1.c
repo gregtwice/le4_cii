@@ -8,13 +8,14 @@
 
 #include "constants.h"
 #include "utils.h"
+#include "lib/train_parser.h"
 
 #define MAX 80
 #define PORT 8080
 #define SA struct sockaddr
 
 
-int initSocket(int sockfd);
+int initSocket(int sockfd, char *addr, int port);
 
 /**
  * Cette fonction permet d'ajouter le préfixe MODBUS au message en ajoutant les infos et la taille du message
@@ -148,7 +149,6 @@ void read_internal_word(int sockfd, int addr, int size) {
     add_two_bites_variable(&tramexway, 9, addr);
     add_two_bites_variable(&tramexway, 11, size);
 
-
 /*    unsigned char requete[7 + bufferSize];
     encapsulation(NPDUXWAY, requete, bufferSize);
     printf("sent bytes :");
@@ -209,9 +209,9 @@ void listen_to_api(int sockfd) {
     // F1 addr automate addr pc
     unsigned char REPONSE[8];
     REPONSE[0] = MESSAGE_BUFFER[0];
-    REPONSE[1] = MESSAGE_BUFFER[3]; // addr automate
+    REPONSE[1] = MESSAGE_BUFFER[3]; // addr pc
     REPONSE[2] = MESSAGE_BUFFER[4]; //
-    REPONSE[3] = MESSAGE_BUFFER[1];
+    REPONSE[3] = MESSAGE_BUFFER[1]; // addr automate
     REPONSE[4] = MESSAGE_BUFFER[2];
     REPONSE[5] = 0x19; // 5 niveaux
     REPONSE[6] = MESSAGE_BUFFER[6];
@@ -222,28 +222,133 @@ void listen_to_api(int sockfd) {
     write(sockfd, requete, 15);
 }
 
+void alimenter_troncon(int sockfd, int nTroncon) {
+    unsigned int data[1] = {nTroncon};
+    write_internal_word(sockfd, 50, sizeof(data) / sizeof(unsigned int), data);
+    printf("\n\n ------LISTENING TO API----- \n\n");
+    unsigned char MODBUS_BUFFER[7]; // Packet modbus
+    memset(MODBUS_BUFFER, 0, 7);
+    read(sockfd, MODBUS_BUFFER, 7);
+    // taille du reste du message
+    int message_size = MODBUS_BUFFER[5] - 1;
+    printf("size = %d\n", message_size);
+    unsigned char MESSAGE_BUFFER[message_size];
+    memset(MESSAGE_BUFFER, 0, message_size);
+    read(sockfd, MESSAGE_BUFFER, message_size);
+    printf("read bytes :");
+    for (int i = 0; i < message_size; i++) {
+        printf("%X ", MESSAGE_BUFFER[i]);
+    }
+
+    printf("CODE REQUETE : %d", MESSAGE_BUFFER[7]);
+    printf("ADRESSE : %d", MESSAGE_BUFFER[11] + (MESSAGE_BUFFER[12] << 8));
+    printf("QUANTITE : %d", MESSAGE_BUFFER[13] + (MESSAGE_BUFFER[14] << 8));
+    printf("VALEUR !!! : %d", MESSAGE_BUFFER[15] + (MESSAGE_BUFFER[16] << 8));
+}
+
+void askRessource(int gestSock, int nbRessources, const int *ressources) {
+    int tailleMessage = nbRessources + 3;
+    unsigned char REQUEST_BUFFER[tailleMessage];
+    REQUEST_BUFFER[0] = 1;//id du train
+    REQUEST_BUFFER[1] = (unsigned char) nbRessources;
+    REQUEST_BUFFER[2] = 1; // prise de ressources
+    for (int i = 0; i < nbRessources; ++i) {
+        REQUEST_BUFFER[3 + i] = (int) ressources[i];
+    }
+    for (int i = 0; i < tailleMessage; ++i) {
+        printf("[%d] = %X", i, REQUEST_BUFFER[i]);
+    }
+    printf("\n");
+    write(gestSock, REQUEST_BUFFER, tailleMessage);
+
+    read(gestSock, REQUEST_BUFFER, tailleMessage);
+    for (int i = 0; i < tailleMessage; ++i) {
+        printf("%X", REQUEST_BUFFER[i]);
+    }
+    fflush(stdout);
+}
+
+
+void train1(int sockAPI, int sockGEST) {
+    puts("Train1");
+    usleep(12500);
+
+    FILE *train1File;
+    train1File = fopen("./trains/train1.txt", "r+");
+    if (train1File == NULL) {
+        puts("Couldn't open file, exiting...");
+        return;
+    }
+
+    trainSequence_t *trainSequence = parseTrainSequence(train1File);
+    printf("Train_id = %d", trainSequence->train_id);
+    // prendre ressource r1 r2
+//    int ressources[2] = {1,2};
+//    puts("DEMANDE DE RESSOURCES !!!");
+//    askRessource(sockGEST, 2, ressources);
+    // demander aiguillage A1 -> biais
+    // demander allumage TI0 -> cr C0
+    // demander aiguillage tj0 -> biais
+    // demander aiguillage A0 -> biais
+    // demander allumage TJ1 -> cr C2
+    // rendre R1
+    // ecouter cr -> C1
+    // rendre R2
+    // demander allumage T11 -> cr 20
+    // prendre ressource r3 r4
+    // demander aiguillage A7 -> biais
+    // demander aiguillage TJ1 -> biais
+    // demander allumage t16 -> cr 32
+    // rendre R3
+    // demander inversion 50ms TI6 -> cr ok
+    // prendre R3 et R5
+    // demander allumage T16 -> cr 32
+    // rendre R4
+    // ecouter cr -> c31
+    // rendre R3
+    // demander R6
+    // demander allumage t17 -> cr 21
+    // rendre R5
+    // demander R1 et R2
+    // demander aiguillage tj0 -> biais
+    // demander aiguillage A0 -> biais
+    // demander allumage t12 -> cr 6
+    // rendre R6
+    // ecouter cr 2
+    // rendre R2
+    // demander aiguillage A1 -> biais
+    // demander allumage ti1 -> cr0
+    // Rendre R1
+    // demander inversion 50ms TI0 -> cr ok
+
+}
+
+
 int main(int argc, char *argv[]) {
 
     int sockfd = 1;
-    sockfd = initSocket(sockfd);
+//    sockfd = initSocket(sockfd, "10.22.205.202", 502);
 
-
-    stop(sockfd);
-    getchar();
-    run(sockfd);
-    unsigned int data[3] = {0x2048, 0x1024, 0xffff};
-    write_internal_word(sockfd, 100, sizeof(data) / sizeof(unsigned int), data);
+    int sockGest = 1;
+//    sockGest = initSocket(sockGest, "127.0.0.1", 8080);
+    train1(sockfd, sockGest);
+//    stop(sockfd);
+//    getchar();
+//    run(sockfd);
+//    unsigned int data[3] = {0x2048, 0x1024, 0xffff};
+//    write_internal_word(sockfd, 100, sizeof(data) / sizeof(unsigned int), data);
 //    unsigned int data2[1] = {14};
 //    write_internal_word(sockfd, 50, 1, data2);
 //    read_internal_word(sockfd, 100, 3);
 //    usleep(500);
 //    listen_to_api(sockfd);
     getchar();
-    close(sockfd);
+//    close(sockfd);
+//    close(sockGest);
 }
 
-int initSocket(int sockfd) {
-    struct sockaddr_in servaddr;
+int initSocket(int sockfd, char *addr, int port) {
+    struct sockaddr_in servaddrAPI;
 
     // socket create and varification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -252,16 +357,16 @@ int initSocket(int sockfd) {
         exit(0);
     } else
         printf("Socket successfully created..\n");
-    bzero(&servaddr, sizeof(servaddr));
+    bzero(&servaddrAPI, sizeof(servaddrAPI));
 
     // assign IP, PORT
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-//    servaddr.sin_addr.s_addr = inet_addr("10.22.205.202");
-    servaddr.sin_port = htons(PORT);
+    servaddrAPI.sin_family = AF_INET;
+//    servaddrAPI.sin_addr.s_addr = inet_addr("127.0.0.1");
+    servaddrAPI.sin_addr.s_addr = inet_addr(addr);
+    servaddrAPI.sin_port = htons(port);
 
     // connect the client socket to server socket
-    if (connect(sockfd, (SA *) &servaddr, sizeof(servaddr)) != 0) {
+    if (connect(sockfd, (SA *) &servaddrAPI, sizeof(servaddrAPI)) != 0) {
         printf("connection with the server failed...\n");
         //exit(0);
     } else
