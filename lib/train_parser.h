@@ -16,6 +16,8 @@
 #define CHAR_ID '$'
 #define CHAR_ADDR 'F'
 
+#define ALLOWED_ORDERS "APRILT"
+
 typedef struct {
     int code;
     unsigned char mode;
@@ -65,6 +67,8 @@ typedef struct {
     } order;
     char comment[MAX_COMMENT_LENGTH];
 } train_order_t;
+
+
 
 typedef struct {
     int train_id;

@@ -5,14 +5,20 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include<pthread.h>
+#include <pthread.h>
 #include <signal.h>
 
-pthread_mutex_t ressources[9];
 int MAX_BUF_LEN = 20;
 int se;
 
-void closeSock(){
+typedef struct {
+    unsigned char train_id;
+    pthread_mutex_t r;
+} ressource;
+
+ressource ressourcesTrain[9];
+
+void closeSock() {
     puts("Closing socket");
     close(se);
 }
@@ -22,25 +28,38 @@ void *connexionHandler(void *socket_ptr) {
     puts("Processing train");
     int sock = *(int *) socket_ptr;
     unsigned char BUFFER[MAX_BUF_LEN];
+    char train_id = -1;
     while (1) {
         puts("Attente message !!!");
-        read(sock, BUFFER, MAX_BUF_LEN);
+        int n = read(sock, BUFFER, MAX_BUF_LEN);
+        if (n == 0) {
+            if (train_id == -1) return NULL;
+            printf("Libération des ressources du train %d\n", train_id);
+            for (int i = 0; i < 9; ++i) {
+                if (ressourcesTrain[i].train_id == train_id) {
+                    pthread_mutex_unlock(&ressourcesTrain[i].r);
+                }
+            }
+            return NULL;
+        }
         puts("Message recu !!!");
         // buffer [0] = id du train
         // buffer [1] = nbRessources
         // buffer [2] = 1 ? prise : 2 res rendue
         // buffer [3..] = ressources
-        unsigned char train_id = BUFFER[0];
+        train_id = (char) BUFFER[0];
         unsigned char nb_ressources = BUFFER[1];
         if (BUFFER[2] == 1) {
             for (int i = 0; i < (int) nb_ressources; ++i) {
                 printf("Le train [%d] PREND la ressource %d\n", train_id, (int) BUFFER[i + 3]);
-                pthread_mutex_lock(&ressources[(int) BUFFER[i + 3]-1]);
+                pthread_mutex_lock(&ressourcesTrain[(int) BUFFER[i + 3] - 1].r);
+                ressourcesTrain[(int) BUFFER[i + 3] - 1].train_id = BUFFER[0];
             }
-        } else {
+        } else if (BUFFER[2] == 2) {
             for (int i = 0; i < (int) nb_ressources; ++i) {
-                printf("Le train [%d] REND la ressource %d\n", train_id, (int) BUFFER[i + 3] );
-                pthread_mutex_unlock(&ressources[(int) BUFFER[i + 3]-1]);
+                printf("Le train [%d] LIBERE la ressource %d\n", train_id, (int) BUFFER[i + 3]);
+                pthread_mutex_unlock(&ressourcesTrain[(int) BUFFER[i + 3] - 1].r);
+                ressourcesTrain[(int) BUFFER[i + 3] - 1].train_id = 0;
             }
         }
         // ok -> on lui renvoie son buffer
@@ -58,9 +77,11 @@ int main() {
     signal(SIGINT, closeSock);
     atexit(closeSock);
     for (int i = 0; i < 9; ++i) {
-        pthread_mutex_init(&ressources[i], NULL);
+
+        pthread_mutex_init(&ressourcesTrain[i].r, NULL);
+        ressourcesTrain[i].train_id = 0;
     }
-    int  sd;
+    int sd;
     struct sockaddr_in svc, clt;
     socklen_t cltLen;
 // Création de la socket de réception d’écoute des appels
@@ -88,8 +109,6 @@ int main() {
             return 1;
         }
         puts("Nouveau Train Connecté !!!\n");
-
     }
     close(se);
-
 }

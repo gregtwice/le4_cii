@@ -1,14 +1,30 @@
-all: train1.exe serveur.exe build/utils.o build/train_parser.o
+libsrc = $(wildcard lib/*.c)
+objT = $(libsrc:.c=.o)
+obj = $(subst lib,build,$(objT))
 
-train1.exe : build/utils.o build/train_parser.o constants.h tp1.c
-	gcc constants.h build/utils.o build/train_parser.o tp1.c -o train1.exe
+serversrc = $(wildcard serveur/*.c)
+servObjT = $(serversrc:.c=.o)
+servObj = $(subst serveur,build,$(servObjT))
 
-serveur.exe : utils.o constants.h ressource_manager.c
-	gcc constants.h build/utils.o ressource_manager.c -o serveur.exe -lpthread
+all: train1.exe serveur.exe buildDir
 
-build/utils.o: utils.h utils.c
-	gcc -c utils.c -o build/utils.o
+VPATH = lib
 
-build/train_parser.o : lib/train_parser.c lib/train_parser.h
-	gcc -c lib/train_parser.c -o build/train_parser.o
+buildDir:
+	mkdir -p build
 
+build/%.o: %.c %.h
+
+	gcc -c $< -o $@
+
+build/log.o: lib/log.c lib/log.h
+	gcc -c $< -o $@ -DLOG_USE_COLOR
+
+clean :
+	rm build/*.o
+
+train1.exe : main.c $(obj)
+	gcc build/*.o main.c -o train1.exe
+
+serveur.exe : serveur/ressource_manager.c
+	gcc $^ -o serveur.exe -lpthread

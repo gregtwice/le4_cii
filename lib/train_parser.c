@@ -3,6 +3,7 @@
 //
 
 #include "train_parser.h"
+#include "log.h"
 
 static void getInstruction(const char *buffer, const order_type *orderType, char *type, train_order_t *trainOrder);
 
@@ -10,10 +11,12 @@ static void removeTraillingWhitespace(char *buffer);
 
 
 trainSequence_t *parseTrainSequence(FILE *trainfile) {
+    log_info("Parsage du fichier de commande");
     static trainSequence_t sequence;
     sequence.nOrders = 0;
     int buffer_len = 1024;
     char type;
+    int nT = 0, nI = 0, nA = 0, nR = 0;
     char buffer[buffer_len];
     while (!feof(trainfile)) {
         fgets(buffer, buffer_len, trainfile);
@@ -33,15 +36,13 @@ trainSequence_t *parseTrainSequence(FILE *trainfile) {
                     break;
             }
         } else if (buffer[0] == CHAR_ID) {
-            printf("\nID\n");
             sscanf(buffer, "$ %d", &sequence.train_id);
-        } else if (buffer[0] != CHAR_COMMENT) {
+        } else if (strchr(ALLOWED_ORDERS, buffer[0])) {
             order_type orderType = (unsigned char) buffer[0];
             train_order_t trainOrder;
-
+            trainOrder.type = orderType;
             getInstruction(buffer, &orderType, &type, &trainOrder);
 
-            trainOrder.type = (unsigned char) type;
             if (strstr(buffer, "#")) {
                 // on récupère le commentaire
                 char *ptr;
@@ -50,10 +51,31 @@ trainSequence_t *parseTrainSequence(FILE *trainfile) {
                 strcpy(trainOrder.comment, ptr);
             }
             sequence.orders[sequence.nOrders++] = trainOrder;
+            switch (trainOrder.type) {
+                case aiguillage:
+                    nA++;
+                    break;
+                case troncon:
+                    nT++;
+                    break;
+                case inversion:
+                    nI++;
+                    break;
+                case prise_ressource:
+                case rendre_ressource:
+                    nR++;
+                    break;
+            }
         }
 
     }
-    printf("n° orders : %d\n", sequence.nOrders);
+    log_info("Parsage terminé...");
+    log_debug("Id du Train :  %d", sequence.train_id);
+    log_debug("Adresse MW%d : %d Instructions Tronçons trouvées", sequence.troncon_address, nT);
+    log_debug("Adresse MW%d : %d Instructions Inversion trouvées", sequence.inversion_address, nI);
+    log_debug("Adresse MW%d : %d Instructions Aiguillage trouvées", sequence.aiguillage_address, nA);
+    log_debug("Gestionnaire de Ressources : %d Instructions Ressources trouvées", nR);
+    log_debug("Total d'instructions : %d", sequence.nOrders);
     return &sequence;
 }
 
@@ -68,37 +90,51 @@ static void removeTraillingWhitespace(char *buffer) {
 static void getInstruction(const char *buffer, const order_type *orderType, char *type, train_order_t *trainOrder) {
     switch (*orderType) {
         case aiguillage:
-            sscanf(buffer, "%c %d %c", type, &(*trainOrder).order.aiguillageOrder.code,
-                   &(*trainOrder).order.aiguillageOrder.mode);
+            sscanf(buffer, "%c %d %c", type, &trainOrder->order.aiguillageOrder.code, &(*trainOrder).order.aiguillageOrder.mode);
             break;
         case troncon:
-            sscanf(buffer, "%c %d %d", type, &(*trainOrder).order.tronconOrder.code,
-                   &(*trainOrder).order.tronconOrder.expected_cr);
+            sscanf(buffer, "%c %d %d", type, &trainOrder->order.tronconOrder.code, &(*trainOrder).order.tronconOrder.expected_cr);
             break;
         case inversion:
-            sscanf(buffer, "%c %d", type, &(*trainOrder).order.inversionOrder.code);
+            sscanf(buffer, "%c %d", type, &trainOrder->order.inversionOrder.code);
             break;
         case listen_order:
-            sscanf(buffer, "%c %d", type, &(*trainOrder).order.listenOrder.expected_cr);
+            sscanf(buffer, "%c %d", type, &trainOrder->order.listenOrder.expected_cr);
 
             break;
         case prise_ressource:
-            if (buffer[3] == '2')
-                sscanf("%c %c %c %c", type, &(*trainOrder).order.priseRessourceOrder.num,
-                       &(*trainOrder).order.priseRessourceOrder.ressources[0],
-                       &(*trainOrder).order.priseRessourceOrder.ressources[1]);
-            else if (buffer[3] == '1')
-                sscanf("%c %c %c", type, &(*trainOrder).order.priseRessourceOrder.num,
-                       &(*trainOrder).order.priseRessourceOrder.ressources[0]);
+            if (buffer[2] == '2') {
+                char num;
+                char r1;
+                char r2;
+                sscanf(buffer, "P %c %c %c", &num, &r1, &r2);
+                trainOrder->order.priseRessourceOrder.num = num - 48;
+                trainOrder->order.priseRessourceOrder.ressources[0] = r1 - 48;
+                trainOrder->order.priseRessourceOrder.ressources[1] = r2 - 48;
+            } else if (buffer[2] == '1') {
+                char num;
+                char r1;
+                sscanf(buffer, "P %c %c", &num, &r1);
+                trainOrder->order.priseRessourceOrder.num = num - 48;
+                trainOrder->order.priseRessourceOrder.ressources[0] = r1 - 48;
+            }
             break;
         case rendre_ressource:
-            if (buffer[3] == '2')
-                sscanf("%c %c %c %c", type, &(*trainOrder).order.rendreRessourceOrder.num,
-                       &(*trainOrder).order.rendreRessourceOrder.ressources[0],
-                       &(*trainOrder).order.rendreRessourceOrder.ressources[1]);
-            else if (buffer[3] == '1')
-                sscanf("%c %c %c", type, &(*trainOrder).order.rendreRessourceOrder.num,
-                       &(*trainOrder).order.rendreRessourceOrder.ressources[0]);
+            if (buffer[2] == '2') {
+                char num;
+                char r1;
+                char r2;
+                sscanf(buffer, "R %c %c %c", &num, &r1, &r2);
+                trainOrder->order.rendreRessourceOrder.num = num - 48;
+                trainOrder->order.rendreRessourceOrder.ressources[0] = r1 - 48;
+                trainOrder->order.rendreRessourceOrder.ressources[1] = r2 - 48;
+            } else if (buffer[2] == '1') {
+                char num;
+                char r1;
+                sscanf(buffer, "R %c %c", &num, &r1);
+                trainOrder->order.rendreRessourceOrder.num = num - 48;
+                trainOrder->order.rendreRessourceOrder.ressources[0] = r1 - 48;
+            }
             break;
         default:
             break;
@@ -107,34 +143,34 @@ static void getInstruction(const char *buffer, const order_type *orderType, char
 
 
 static void print_aiguillage_order_t(aiguillage_order_t order) {
-    printf("Ordre de commande de l'aiguillage %d en %c\n", order.code, order.mode);
+    log_info("commande de l'aiguillage %d en %c", order.code, order.mode);
 }
 
 static void print_troncon_order_t(troncon_order_t order) {
-    printf("Ordre de commande du tronçon %d jusqu'au capteur c%d\n", order.code, order.expected_cr);
+    log_info("alimentation du tronçon %d jusqu'au capteur c%d", order.code, order.expected_cr);
 }
 
 static void print_listen_order_t(listen_order_t order) {
-    printf("Ordre d'attente du franchissment du capteur %d\n", order.expected_cr);
+    log_info("Ordre d'attente du franchissment du capteur %d", order.expected_cr);
 }
 
 static void print_inversion_order_t(inversion_order_t order) {
-    printf("Ordre d'inversion du sens du train au tronçon %d\n", order.code);
+    log_info("inversion du sens du train au tronçon %d", order.code);
 }
 
 static void print_prise_ressource_order_t(prise_ressource_order_t order) {
     if (order.num == 2)
-        printf("Prise de deux ressources : %d et %d\n", order.ressources[0], order.ressources[1]);
+        log_info("Prise de deux ressources : %d et %d", order.ressources[0], order.ressources[1]);
     else
-        printf("Prise d'une ressource: %d\n", order.ressources[0]);
+        log_info("Prise d'une ressource: %d", order.ressources[0]);
 
 }
 
 static void print_rendre_ressource_order_t(rendre_ressource_order_t order) {
     if (order.num == 2)
-        printf("Remise de deux ressources : %d et %d\n", order.ressources[0], order.ressources[1]);
+        log_info("Remise de deux ressources : %d et %d", order.ressources[0], order.ressources[1]);
     else
-        printf("Remise d'une ressource: %d\n", order.ressources[0]);
+        log_info("Remise d'une ressource: %d", order.ressources[0]);
 }
 
 void printOrder(train_order_t order) {
