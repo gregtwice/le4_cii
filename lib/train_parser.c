@@ -9,6 +9,8 @@ static void getInstruction(const char *buffer, const order_type *orderType, char
 
 static void removeTraillingWhitespace(char *buffer);
 
+int validerSequence(trainSequence_t sequence);
+
 
 trainSequence_t *parseTrainSequence(FILE *trainfile) {
     log_info("Parsage du fichier de commande");
@@ -69,6 +71,9 @@ trainSequence_t *parseTrainSequence(FILE *trainfile) {
         }
 
     }
+    if (validerSequence(sequence) == -1) {
+        return NULL;
+    }
     log_info("Parsage terminé...");
     log_debug("Id du Train :  %d", sequence.train_id);
     log_debug("Adresse MW%d : %d Instructions Tronçons trouvées", sequence.troncon_address, nT);
@@ -90,7 +95,7 @@ static void removeTraillingWhitespace(char *buffer) {
 static void getInstruction(const char *buffer, const order_type *orderType, char *type, train_order_t *trainOrder) {
     switch (*orderType) {
         case aiguillage:
-            sscanf(buffer, "%c %d %c", type, &trainOrder->order.aiguillageOrder.code, &(*trainOrder).order.aiguillageOrder.mode);
+            sscanf(buffer, "%c %d", type, &trainOrder->order.aiguillageOrder.code);
             break;
         case troncon:
             sscanf(buffer, "%c %d %d", type, &trainOrder->order.tronconOrder.code, &(*trainOrder).order.tronconOrder.expected_cr);
@@ -141,9 +146,39 @@ static void getInstruction(const char *buffer, const order_type *orderType, char
     }
 }
 
+int validerSequence(trainSequence_t sequence) {
+    int ressources[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    for (int i = 0; i < sequence.nOrders; ++i) {
+        train_order_t current = sequence.orders[i];
+        if (current.type == prise_ressource) {
+            for (int j = 0; j < current.order.priseRessourceOrder.num; ++j) {
+                ressources[current.order.priseRessourceOrder.ressources[j]] += 1;
+            }
+        }
+        if (current.type == rendre_ressource) {
+            for (int j = 0; j < current.order.rendreRessourceOrder.num; ++j) {
+                ressources[current.order.rendreRessourceOrder.ressources[j]] -= 1;
+            }
+        }
+    }
+    log_info("Vérification des ressources");
+    int flag = 0;
+    for (int i = 0; i < 10; ++i) {
+        int r = ressources[i];
+        if (r != 0) {
+            if (r > 0)
+                log_fatal("La ressource %d n'est pas rendue", i);
+            else
+                log_fatal("La ressource %d est trop rendue", i);
+            flag = -1;
+        }
+    }
+    return flag;
+}
+
 
 static void print_aiguillage_order_t(aiguillage_order_t order) {
-    log_info("commande de l'aiguillage %d en %c", order.code, order.mode);
+    log_info("commande de l'aiguillage de code : %d", order.code);
 }
 
 static void print_troncon_order_t(troncon_order_t order) {
@@ -195,3 +230,4 @@ void printOrder(train_order_t order) {
             break;
     }
 }
+

@@ -1,4 +1,5 @@
 
+#include <assert.h>
 #include "lib/utils.h"
 #include "lib/train_parser.h"
 #include "lib/train_orders.h"
@@ -22,6 +23,7 @@ void train(int sockAPI, int sockGEST,char * trainName) {
     }
 
     trainSequence_t *trainSequence = parseTrainSequence(train1File);
+    assert(trainSequence != NULL);
     do {
         for (int i = 0; i < trainSequence->nOrders; ++i) {
             usleep(100000);

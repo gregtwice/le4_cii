@@ -6,7 +6,7 @@ serversrc = $(wildcard serveur/*.c)
 servObjT = $(serversrc:.c=.o)
 servObj = $(subst serveur,build,$(servObjT))
 
-all: train1.exe serveur.exe buildDir
+all: buildDir train1.exe serveur.exe
 
 VPATH = lib
 

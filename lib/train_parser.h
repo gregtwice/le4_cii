@@ -1,6 +1,6 @@
-//
-// Created by gregoire on 15/03/2021.
-//
+/**
+ * @file train_parser.h
+ */
 
 #ifndef CII_TRAIN_PARSER_H
 #define CII_TRAIN_PARSER_H
@@ -20,7 +20,6 @@
 
 typedef struct {
     int code;
-    unsigned char mode;
 } aiguillage_order_t;
 
 typedef struct {
