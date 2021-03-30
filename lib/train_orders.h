@@ -14,8 +14,8 @@ int commander_aiguillage(int sock, int adresse, aiguillage_order_t aiguillageOrd
 
 int commander_inversion(int sock, int adresse, inversion_order_t inversionOrder);
 
-int prendre_ressources(int sock,prise_ressource_order_t order);
+int prendre_ressources(int sock, unsigned char id, prise_ressource_order_t order);
 
-int rendre_ressources(int sock,rendre_ressource_order_t order);
+int rendre_ressources(int sock, unsigned char id, rendre_ressource_order_t order);
 
 #endif //CII_TRAIN_ORDERS_H

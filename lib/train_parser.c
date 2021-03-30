@@ -98,7 +98,7 @@ static void getInstruction(const char *buffer, const order_type *orderType, char
             sscanf(buffer, "%c %d", type, &trainOrder->order.aiguillageOrder.code);
             break;
         case troncon:
-            sscanf(buffer, "%c %d %d", type, &trainOrder->order.tronconOrder.code, &(*trainOrder).order.tronconOrder.expected_cr);
+            sscanf(buffer, "%c %d %d", type, &trainOrder->order.tronconOrder.code, &trainOrder->order.tronconOrder.expected_cr);
             break;
         case inversion:
             sscanf(buffer, "%c %d", type, &trainOrder->order.inversionOrder.code);

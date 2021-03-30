@@ -1,0 +1,41 @@
+# P Prendre Ressource [n] [...]
+# R Rendre Ressource [n] [...]
+# A Aiguillage [num]
+# T tronçon [num] [CR]
+# I inversion
+# F [A/T/I] [Addr] ex F A 101 = filtre des aiguillages = %MW101
+#
+# https://docs.google.com/spreadsheets/d/1n3A3VXEeBylMBLsiCLEnzWQ3xcONe4qPRIbbClwvHG4/edit?usp=sharing
+# id du train
+
+$ 4
+
+# adresses
+F A 54
+F T 64
+F I 74
+
+# instructions
+
+A 14 		#demander aiguillage A4 -> droit
+P 1 9		#prendre ressource r9
+A 54 		#demander aiguillage PA0 -> droit + PA1 -> biais +A3 -> biais A4 -> droit
+T 13 16		#demander allumage TI3 -> cr C16
+P 2 7 4		#prendre ressource r7 r4
+A 1 		#demander aiguillage A4 -> droit
+T 29 34		#demander allumage T19 -> cr C34
+R 2 7 9		#rendre R7 r9
+
+
+I 16 		#demande d'invertion
+
+
+P 2 7 9		#prendre ressource r7 r9
+T 160 34	#demander allumage TI6 -> cr C34
+R 2 7 4 	#rendre R7 r4
+A 54 		#demander aiguillage PA0 -> droit + PA1 -> biais +A3 -> biais A4 -> droit
+T 29 35		#demander allumage T19 -> cr C35
+
+I 13 		#demande d'invertion
+
+

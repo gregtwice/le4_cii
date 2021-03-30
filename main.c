@@ -6,7 +6,7 @@
 #include "lib/networking.h"
 #include "lib/log.h"
 
-void train(int sockAPI, int sockGEST,char * trainName) {
+void train(int sockAPI, int sockGEST, char *trainName) {
     FILE *train1File = NULL;
     char *confDir = "./trains/";
     char *configExt = ".orders";
@@ -41,12 +41,13 @@ void train(int sockAPI, int sockGEST,char * trainName) {
                 case listen_order: // Verifier utilité
                     break;
                 case prise_ressource:
-                    prendre_ressources(sockGEST, trainSequence->orders[i].order.priseRessourceOrder);
+                    prendre_ressources(sockGEST, trainSequence->train_id, trainSequence->orders[i].order.priseRessourceOrder);
                     break;
                 case rendre_ressource:
-                    rendre_ressources(sockGEST, trainSequence->orders[i].order.rendreRessourceOrder);
+                    rendre_ressources(sockGEST, trainSequence->train_id, trainSequence->orders[i].order.rendreRessourceOrder);
                     break;
             }
+//            getchar();
         }
     } while (config.loop);
 
@@ -69,13 +70,12 @@ int main(int argc, char *argv[]) {
     log_set_level(config.log_level);
 
 
-
     log_info("Connextion à l'automate");
     int sockfd = initSocket(config.automate_ip, config.automate_port);
 
     log_info("Connextion au gestionnaire de ressources");
     int sockGest = initSocket(config.gestionnaire_ip, config.gestionnaire_port);
-    train(sockfd, sockGest,argv[1]);
+    train(sockfd, sockGest, argv[1]);
     log_debug("Fermeture de la socket automate");
     close(sockfd);
     log_debug("Fermeture de la socket du gestionnaire de ressources");

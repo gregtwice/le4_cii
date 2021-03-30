@@ -155,7 +155,7 @@ int wait_api_action(int sockfd) {
     log_trace("Write Var Reçu... Envoi du CR");
     send_request(sockfd, &tramexway);
     log_trace("Envoi Terminé");
-    int cr = received_trame->trame[6] + ((int) (received_trame->trame[7]) << 8);
+    int cr = received_trame->trame[received_trame->length - 2] + ((int) (received_trame->trame[received_trame->length - 1]) << 8);
     return cr;
 }
 

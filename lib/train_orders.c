@@ -10,8 +10,10 @@ int alimenter_troncon(int sock, int adresse, troncon_order_t tronconOrder) {
     unsigned int data[1] = {tronconOrder.code};
     write_internal_word(sock, adresse, 1, data);
     // attendre le cr de l'automate
+    usleep(300);
     int cr = wait_api_action(sock);
     if (cr != tronconOrder.expected_cr) {
+        log_warn("expected %d, got %d", tronconOrder.expected_cr, cr);
         return -1;
     }
     return 0;
@@ -23,6 +25,7 @@ int commander_aiguillage(int sock, int adresse, aiguillage_order_t aiguillageOrd
     data[0] = aiguillageOrder.code;
     write_internal_word(sock, adresse, 1, data);
     // attendre le cr de l'automate
+    usleep(300);
     int cr = wait_api_action(sock);
     if (cr != aiguillageOrder.code) {
         return -1;
@@ -35,6 +38,7 @@ int commander_inversion(int sock, int adresse, inversion_order_t inversionOrder)
     data[0] = inversionOrder.code;
     write_internal_word(sock, adresse, 1, data);
     // attendre le cr de l'automate
+    usleep(1000 * 1000);
     int cr = wait_api_action(sock);
     if (cr != inversionOrder.code) {
         return -1;
@@ -42,12 +46,12 @@ int commander_inversion(int sock, int adresse, inversion_order_t inversionOrder)
     return 0;
 }
 
-int prendre_ressources(int sock, prise_ressource_order_t order) {
+int prendre_ressources(int sock, unsigned char id, prise_ressource_order_t order) {
 
     int tailleMessage = order.num + 3;
     unsigned char REQUEST_BUFFER[tailleMessage];
 
-    REQUEST_BUFFER[0] = 1;//id du train
+    REQUEST_BUFFER[0] = id;//id du train
     REQUEST_BUFFER[1] = (unsigned char) order.num;
     REQUEST_BUFFER[2] = 1; // prise de ressources
     for (int i = 0; i < order.num; ++i) {
@@ -62,11 +66,11 @@ int prendre_ressources(int sock, prise_ressource_order_t order) {
     return 0;
 }
 
-int rendre_ressources(int sock, rendre_ressource_order_t order) {
+int rendre_ressources(int sock, unsigned char id, rendre_ressource_order_t order) {
     int tailleMessage = order.num + 3;
     unsigned char REQUEST_BUFFER[tailleMessage];
 
-    REQUEST_BUFFER[0] = 1;//id du train
+    REQUEST_BUFFER[0] = id;//id du train
     REQUEST_BUFFER[1] = (unsigned char) order.num;
     REQUEST_BUFFER[2] = 2; // rendu de ressources
     for (int i = 0; i < order.num; ++i) {
