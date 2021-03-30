@@ -34,8 +34,8 @@ P 2 7 9		#prendre ressource r7 r9
 T 160 34	#demander allumage TI6 -> cr C34
 R 2 7 4 	#rendre R7 r4
 A 54 		#demander aiguillage PA0 -> droit + PA1 -> biais +A3 -> biais A4 -> droit
-T 29 35		#demander allumage T19 -> cr C35
+T 290 35		#demander allumage T19 -> cr C35
 
 I 13 		#demande d'invertion
-
+R 1 9
 

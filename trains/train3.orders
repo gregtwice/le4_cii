@@ -18,7 +18,7 @@ F T 63
 
 A 13 		#demander aiguillage A2 -> biais
 T 20 9		#demander allumage T10 -> cr C9
-P 1 7		#prendre ressource r2
+P 1 2		#prendre ressource r2
 
 A 20 		#demander aiguillage TJ0 -> biais
 
@@ -35,3 +35,5 @@ R 2 8 7		#rendre R8 & 7
 A 53 		#demander aiguillage PA0 -> droit + PA1 -> biais + A3 -> droit
 T 29 14 	#demander allumage T19 -> cr C14
 R 1 9		#rendre R9
+
+
