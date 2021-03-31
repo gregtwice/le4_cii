@@ -71,12 +71,31 @@ void *connexionHandler(void *socket_ptr) {
     return 0;
 }
 
+void *getCharHandler(void *rien) {
+
+
+    while (1) {
+        getchar();
+        printf("\n\nEtat des Ressources : \n[\n");
+        for (int i = 0; i < 9; ++i) {
+            if (ressourcesTrain[i].train_id != 0) {
+                printf("\t %d Prise par le train %d\n", i+1, ressourcesTrain[i].train_id);
+            } else {
+                printf("\t %d Libre !!\n", i+1);
+            }
+        }
+        printf("]\n\n");
+    }
+
+
+    return NULL;
+}
 
 int main() {
     signal(SIGTERM, closeSock);
     signal(SIGINT, closeSock);
     atexit(closeSock);
-    for (int i = 0; i < 9; ++i) {
+    for (int i = 0; i < 9; i++) {
 
         pthread_mutex_init(&ressourcesTrain[i].r, NULL);
         ressourcesTrain[i].train_id = 0;
@@ -95,6 +114,11 @@ int main() {
         printf("Can't bind\n");
         exit(0);
     }
+
+    pthread_t thread_getChar;
+    pthread_create(&thread_getChar, NULL, getCharHandler, NULL);
+
+
     listen(se, 4);
     while (1) {
         cltLen = sizeof(clt);

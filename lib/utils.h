@@ -38,6 +38,7 @@ typedef struct {
     int gestionnaire_port;
     int log_level;
     int loop;
+    int nbTours;
 } train_config;
 
 extern train_config config;

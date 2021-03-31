@@ -36,9 +36,10 @@ int commander_aiguillage(int sock, int adresse, aiguillage_order_t aiguillageOrd
 int commander_inversion(int sock, int adresse, inversion_order_t inversionOrder) {
     unsigned int data[1];
     data[0] = inversionOrder.code;
-    write_internal_word(sock, adresse, 1, data);
-    // attendre le cr de l'automate
     usleep(1000 * 1000);
+    write_internal_word(sock, adresse, 1, data);
+    usleep(1000);
+    // attendre le cr de l'automate
     int cr = wait_api_action(sock);
     if (cr != inversionOrder.code) {
         return -1;
@@ -62,6 +63,7 @@ int prendre_ressources(int sock, unsigned char id, prise_ressource_order_t order
 //    }
 //    printf("\n");
     write(sock, REQUEST_BUFFER, tailleMessage);
+    usleep(10000);
     read(sock, REQUEST_BUFFER, tailleMessage);
     return 0;
 }
@@ -81,6 +83,7 @@ int rendre_ressources(int sock, unsigned char id, rendre_ressource_order_t order
 //    }
 //    printf("\n");
     write(sock, REQUEST_BUFFER, tailleMessage);
+    usleep(10000);
     read(sock, REQUEST_BUFFER, tailleMessage);
 /*    for (int i = 0; i < tailleMessage; ++i) {
         printf("%X", REQUEST_BUFFER[i]);

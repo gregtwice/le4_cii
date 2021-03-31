@@ -24,9 +24,12 @@ void train(int sockAPI, int sockGEST, char *trainName) {
 
     trainSequence_t *trainSequence = parseTrainSequence(train1File);
     assert(trainSequence != NULL);
+    getchar();
     do {
+        if (!config.loop)
+            config.nbTours--;
         for (int i = 0; i < trainSequence->nOrders; ++i) {
-            usleep(100000);
+            usleep(500000);
             printOrder(trainSequence->orders[i]);
             switch (trainSequence->orders[i].type) {
                 case aiguillage:
@@ -48,6 +51,9 @@ void train(int sockAPI, int sockGEST, char *trainName) {
                     break;
             }
 //            getchar();
+        }
+        if (!config.loop && config.nbTours < 0) {
+            config.loop = 0;
         }
     } while (config.loop);
 

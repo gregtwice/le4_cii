@@ -120,8 +120,14 @@ train_config *parseTrainConfig(char *filename) {
             config.gestionnaire_port = valueInt;
         if (strcmp(param, "LOG_LEVEL") == 0)
             config.log_level = valueInt;
-        if (strcmp(param, "LOOP") == 0)
-            config.loop = valueInt;
+        if (strcmp(param, "LOOP") == 0) {
+            if (valueInt == -1) {
+                config.loop = 1;
+            } else {
+                config.loop = 0;
+                config.nbTours = valueInt;
+            }
+        }
     }
 
 
