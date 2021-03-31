@@ -8,6 +8,13 @@
 #include <pthread.h>
 #include <signal.h>
 
+#define DEMANDE 1
+#define RESTITUTION 2
+
+#define MicroSec 1
+#define MiliSec 1000*Microsec
+#define Sec 1000 * Milisec
+
 int MAX_BUF_LEN = 20;
 int se;
 
@@ -24,6 +31,44 @@ void closeSock() {
 }
 
 
+void liberer_ressources(const unsigned char *BUFFER, char train_id, unsigned char nb_ressources) {
+    for (int i = 0; i < (int) nb_ressources; ++i) {
+        printf("Le train [%d] LIBERE la ressource %d\n", train_id, (int) BUFFER[i + 3]);
+        pthread_mutex_unlock(&ressourcesTrain[(int) BUFFER[i + 3] - 1].r);
+        ressourcesTrain[(int) BUFFER[i + 3] - 1].train_id = 0;
+    }
+}
+
+void prendre_ressources(const unsigned char *BUFFER, char train_id, unsigned char nb_ressources) {
+    char avaliable;
+    do {
+        avaliable = 1;
+        for (int i = 0; i < nb_ressources; ++i) {
+            if (ressourcesTrain[BUFFER[i + 3] - 1].train_id != 0 && ressourcesTrain[BUFFER[i + 3] - 1].train_id != train_id) {
+                avaliable = 0;
+            }
+        }
+        usleep(100 * MicroSec);
+    } while (!avaliable);
+
+
+    for (int i = 0; i < (int) nb_ressources; ++i) {
+        printf("Le train [%d] PREND la ressource %d\n", train_id, (int) BUFFER[i + 3]);
+        pthread_mutex_lock(&ressourcesTrain[(int) BUFFER[i + 3] - 1].r);
+        ressourcesTrain[(int) BUFFER[i + 3] - 1].train_id = BUFFER[0];
+    }
+}
+
+void freeAll(char train_id) {
+    printf("Libération des ressources du train %d\n", train_id);
+    for (int i = 0; i < 9; ++i) {
+        if (ressourcesTrain[i].train_id == train_id) {
+            pthread_mutex_unlock(&ressourcesTrain[i].r);
+            ressourcesTrain[i].train_id = 0;
+        }
+    }
+}
+
 void *connexionHandler(void *socket_ptr) {
     puts("Processing train");
     int sock = *(int *) socket_ptr;
@@ -34,12 +79,7 @@ void *connexionHandler(void *socket_ptr) {
         int n = read(sock, BUFFER, MAX_BUF_LEN);
         if (n == 0) {
             if (train_id == -1) return NULL;
-            printf("Libération des ressources du train %d\n", train_id);
-            for (int i = 0; i < 9; ++i) {
-                if (ressourcesTrain[i].train_id == train_id) {
-                    pthread_mutex_unlock(&ressourcesTrain[i].r);
-                }
-            }
+            freeAll(train_id);
             return NULL;
         }
         puts("Message recu !!!");
@@ -49,18 +89,10 @@ void *connexionHandler(void *socket_ptr) {
         // buffer [3..] = ressources
         train_id = (char) BUFFER[0];
         unsigned char nb_ressources = BUFFER[1];
-        if (BUFFER[2] == 1) {
-            for (int i = 0; i < (int) nb_ressources; ++i) {
-                printf("Le train [%d] PREND la ressource %d\n", train_id, (int) BUFFER[i + 3]);
-                pthread_mutex_lock(&ressourcesTrain[(int) BUFFER[i + 3] - 1].r);
-                ressourcesTrain[(int) BUFFER[i + 3] - 1].train_id = BUFFER[0];
-            }
-        } else if (BUFFER[2] == 2) {
-            for (int i = 0; i < (int) nb_ressources; ++i) {
-                printf("Le train [%d] LIBERE la ressource %d\n", train_id, (int) BUFFER[i + 3]);
-                pthread_mutex_unlock(&ressourcesTrain[(int) BUFFER[i + 3] - 1].r);
-                ressourcesTrain[(int) BUFFER[i + 3] - 1].train_id = 0;
-            }
+        if (BUFFER[2] == DEMANDE) {
+            prendre_ressources(BUFFER, train_id, nb_ressources);
+        } else if (BUFFER[2] == RESTITUTION) {
+            liberer_ressources(BUFFER, train_id, nb_ressources);
         }
         // ok -> on lui renvoie son buffer
         if (write(sock, BUFFER, nb_ressources + 3) == 0) {
@@ -79,9 +111,9 @@ void *getCharHandler(void *rien) {
         printf("\n\nEtat des Ressources : \n[\n");
         for (int i = 0; i < 9; ++i) {
             if (ressourcesTrain[i].train_id != 0) {
-                printf("\t %d Prise par le train %d\n", i+1, ressourcesTrain[i].train_id);
+                printf("\t %d Prise par le train %d\n", i + 1, ressourcesTrain[i].train_id);
             } else {
-                printf("\t %d Libre !!\n", i+1);
+                printf("\t %d Libre !!\n", i + 1);
             }
         }
         printf("]\n\n");
