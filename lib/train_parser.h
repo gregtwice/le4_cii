@@ -78,7 +78,7 @@ typedef struct {
     int nOrders;
 } trainSequence_t;
 
-trainSequence_t *parseTrainSequence(FILE *trainfile);
+void parseTrainSequence(FILE *trainfile,trainSequence_t * );
 
 void printOrder(train_order_t order);
 

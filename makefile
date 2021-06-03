@@ -24,7 +24,7 @@ clean :
 	rm build/*.o
 
 train1.exe : main.c $(obj)
-	gcc build/*.o main.c -o train1.exe
+	gcc build/*.o main.c -o train1.exe -lpthread
 
 serveur.exe : serveur/ressource_manager.c
 	gcc $^ -o serveur.exe -lpthread

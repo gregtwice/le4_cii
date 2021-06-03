@@ -7,12 +7,18 @@
 
 #include "utils.h"
 #include "log.h"
+#include <pthread.h>
 
 
 #define UNITE_RUN 0x24
 #define UNITE_STOP 0x25
 #define UNITE_WRITE_OBJECT 0x37
 #define UNITE_READ_OBJECT 0x36
+
+#define PC_VUE_EMERGENCY 0xFC
+#define PC_VUE_EMERGENCY_ADDR 7
+#define PC_VUE_NBTR_ADDR 2
+#define PC_VUE_RUN_ADDR 3
 
 
 /**
@@ -42,7 +48,7 @@ void stop(int sockfd);
  * @param size le nombre d'éléments à écrire
  * @param data le tableau contenant les éléments à écrire
  */
-void write_internal_word(int sockfd, int addr, int size, unsigned int *data);
+void write_internal_word(int sockfd, int addr, int size, unsigned int *data, int station);
 
 /**
  *
@@ -55,10 +61,10 @@ void read_internal_word(int sockfd, int addr, int size);
 
 /**
  * Attend un Cr de la part de l'automate après une action
- * @param sockfd
+ * @param sock
  * @return
  */
-int wait_api_action(int sockfd);
+int wait_api_action(socketWrapper * sock, int station);
 
 /**
  * Fonction qui attend un cr de l'automate

@@ -12,10 +12,9 @@ static void removeTraillingWhitespace(char *buffer);
 int validerSequence(trainSequence_t sequence);
 
 
-trainSequence_t *parseTrainSequence(FILE *trainfile) {
+void parseTrainSequence(FILE *trainfile,trainSequence_t * sequence) {
     log_info("Parsage du fichier de commande");
-    static trainSequence_t sequence;
-    sequence.nOrders = 0;
+    sequence->nOrders = 0;
     int buffer_len = 1024;
     char type;
     int nT = 0, nI = 0, nA = 0, nR = 0;
@@ -28,17 +27,17 @@ trainSequence_t *parseTrainSequence(FILE *trainfile) {
         if (buffer[0] == CHAR_ADDR) {
             switch (buffer[2]) {
                 case 'A':
-                    sscanf(buffer, "F A %d", &sequence.aiguillage_address);
+                    sscanf(buffer, "F A %d", &sequence->aiguillage_address);
                     break;
                 case 'T':
-                    sscanf(buffer, "F T %d", &sequence.troncon_address);
+                    sscanf(buffer, "F T %d", &sequence->troncon_address);
                     break;
                 case 'I':
-                    sscanf(buffer, "F I %d", &sequence.inversion_address);
+                    sscanf(buffer, "F I %d", &sequence->inversion_address);
                     break;
             }
         } else if (buffer[0] == CHAR_ID) {
-            sscanf(buffer, "$ %d", &sequence.train_id);
+            sscanf(buffer, "$ %d", &sequence->train_id);
         } else if (strchr(ALLOWED_ORDERS, buffer[0])) {
             order_type orderType = (unsigned char) buffer[0];
             train_order_t trainOrder;
@@ -52,7 +51,7 @@ trainSequence_t *parseTrainSequence(FILE *trainfile) {
                 ptr = strtok(NULL, "#");
                 strcpy(trainOrder.comment, ptr);
             }
-            sequence.orders[sequence.nOrders++] = trainOrder;
+            sequence->orders[sequence->nOrders++] = trainOrder;
             switch (trainOrder.type) {
                 case aiguillage:
                     nA++;
@@ -71,17 +70,16 @@ trainSequence_t *parseTrainSequence(FILE *trainfile) {
         }
 
     }
-    if (validerSequence(sequence) == -1) {
-        return NULL;
+    if (validerSequence(*sequence) == -1) {
+        return;
     }
     log_info("Parsage terminé...");
-    log_debug("Id du Train :  %d", sequence.train_id);
-    log_debug("Adresse MW%d : %d Instructions Tronçons trouvées", sequence.troncon_address, nT);
-    log_debug("Adresse MW%d : %d Instructions Inversion trouvées", sequence.inversion_address, nI);
-    log_debug("Adresse MW%d : %d Instructions Aiguillage trouvées", sequence.aiguillage_address, nA);
+    log_debug("Id du Train :  %d", sequence->train_id);
+    log_debug("Adresse MW%d : %d Instructions Tronçons trouvées", sequence->troncon_address, nT);
+    log_debug("Adresse MW%d : %d Instructions Inversion trouvées", sequence->inversion_address, nI);
+    log_debug("Adresse MW%d : %d Instructions Aiguillage trouvées", sequence->aiguillage_address, nA);
     log_debug("Gestionnaire de Ressources : %d Instructions Ressources trouvées", nR);
-    log_debug("Total d'instructions : %d", sequence.nOrders);
-    return &sequence;
+    log_debug("Total d'instructions : %d", sequence->nOrders);
 }
 
 

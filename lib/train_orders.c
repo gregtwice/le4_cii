@@ -5,13 +5,15 @@
 #include "train_orders.h"
 
 
-int alimenter_troncon(int sock, int adresse, troncon_order_t tronconOrder) {
+int alimenter_troncon(socketWrapper * sock, int adresse, troncon_order_t tronconOrder, int station) {
     // envoyer writeVar
+    pthread_mutex_lock(&sock->writeMutex);
     unsigned int data[1] = {tronconOrder.code};
-    write_internal_word(sock, adresse, 1, data);
+    write_internal_word(sock->socket, adresse, 1, data, station);
+    pthread_mutex_unlock(&sock->writeMutex);
     // attendre le cr de l'automate
     usleep(300);
-    int cr = wait_api_action(sock);
+    int cr = wait_api_action(sock, station);
     if (cr != tronconOrder.expected_cr) {
         log_warn("expected %d, got %d", tronconOrder.expected_cr, cr);
         return -1;
@@ -19,28 +21,34 @@ int alimenter_troncon(int sock, int adresse, troncon_order_t tronconOrder) {
     return 0;
 }
 
-int commander_aiguillage(int sock, int adresse, aiguillage_order_t aiguillageOrder) {
+int commander_aiguillage(socketWrapper * sock, int adresse, aiguillage_order_t aiguillageOrder, int station) {
     // envoyer writeVar
     unsigned int data[1];
     data[0] = aiguillageOrder.code;
-    write_internal_word(sock, adresse, 1, data);
+    pthread_mutex_lock(&sock->writeMutex);
+    write_internal_word(sock->socket, adresse, 1, data, station);
+    pthread_mutex_unlock(&sock->writeMutex);
+
     // attendre le cr de l'automate
     usleep(300);
-    int cr = wait_api_action(sock);
+
+    int cr = wait_api_action(sock, station);
     if (cr != aiguillageOrder.code) {
         return -1;
     }
     return 0;
 }
 
-int commander_inversion(int sock, int adresse, inversion_order_t inversionOrder) {
+int commander_inversion(socketWrapper * sock, int adresse, inversion_order_t inversionOrder, int station) {
     unsigned int data[1];
     data[0] = inversionOrder.code;
     usleep(1000 * 1000);
-    write_internal_word(sock, adresse, 1, data);
+    pthread_mutex_lock(&sock->writeMutex);
+    write_internal_word(sock->socket, adresse, 1, data, station);
+    pthread_mutex_unlock(&sock->writeMutex);
     usleep(1000);
     // attendre le cr de l'automate
-    int cr = wait_api_action(sock);
+    int cr = wait_api_action(sock, station);
     if (cr != inversionOrder.code) {
         return -1;
     }
@@ -48,7 +56,7 @@ int commander_inversion(int sock, int adresse, inversion_order_t inversionOrder)
 }
 
 int prendre_ressources(int sock, unsigned char id, prise_ressource_order_t order) {
-
+    log_debug("sock : %d",sock);
     int tailleMessage = order.num + 3;
     unsigned char REQUEST_BUFFER[tailleMessage];
 

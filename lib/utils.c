@@ -4,8 +4,6 @@
 
 #include "utils.h"
 
-train_config config;
-
 static void modbus_encapsulate(tramexway_t tramexway, unsigned char *resquest_array) {
     resquest_array[0] = 0;
     resquest_array[1] = 0;
@@ -45,13 +43,14 @@ void print_hex_array(tramexway_t tramexway) {
 //    printf("\n");
 }
 
-void prefil_trame_3niveaux(tramexway_t *tramexway, unsigned char request_code) {
+void prefil_trame_3niveaux(tramexway_t *tramexway, unsigned char request_code, int station) {
     memset(tramexway->trame, 0, MAX_REQUEST_LENGTH);
+    train_data *data = findTrainData(station);
     tramexway->trame[0] = 0xF0;
-    tramexway->trame[1] = config.train_station;
-    tramexway->trame[2] = (config.train_reseau << 4) + config.train_porte;
-    tramexway->trame[3] = config.automate_station; //reseau cible
-    tramexway->trame[4] = (config.automate_reseau << 4) + config.automate_porte; //machine cible (train)
+    tramexway->trame[1] = station;
+    tramexway->trame[2] = (data->trainConfig->train_reseau << 4) + data->trainConfig->train_porte;
+    tramexway->trame[3] = sharedInfo.trainConfig.automate_station; //reseau cible
+    tramexway->trame[4] = (sharedInfo.trainConfig.automate_reseau << 4) + sharedInfo.trainConfig.automate_porte; //machine cible (train)
     tramexway->trame[5] = request_code;
     tramexway->trame[6] = 6;
     tramexway->length = 7;
@@ -77,8 +76,7 @@ void add_two_bites_variable(tramexway_t *tramexway, int index, int value) {
     tramexway->length += 2;
 }
 
-train_config *parseTrainConfig(char *filename) {
-    static train_config config;
+void parseTrainConfig(char *filename, train_config *config) {
     log_info("Parsage du fichier de configuration du train");
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
@@ -99,38 +97,43 @@ train_config *parseTrainConfig(char *filename) {
             sscanf(value, "%d", &valueInt);
         }
         if (strcmp(param, "TRAIN_STATION") == 0)
-            config.train_station = valueInt;
+            config->train_station = valueInt;
         if (strcmp(param, "TRAIN_RESEAU") == 0)
-            config.train_reseau = valueInt;
+            config->train_reseau = valueInt;
         if (strcmp(param, "TRAIN_PORTE") == 0)
-            config.train_porte = valueInt;
+            config->train_porte = valueInt;
         if (strcmp(param, "AUTOMATE_IP") == 0)
-            strcpy(config.automate_ip, value);
+            strcpy(config->automate_ip, value);
         if (strcmp(param, "AUTOMATE_PORT") == 0)
-            config.automate_port = valueInt;
+            config->automate_port = valueInt;
         if (strcmp(param, "AUTOMATE_STATION") == 0)
-            config.automate_station = valueInt;
+            config->automate_station = valueInt;
         if (strcmp(param, "AUTOMATE_RESEAU") == 0)
-            config.automate_reseau = valueInt;
+            config->automate_reseau = valueInt;
         if (strcmp(param, "AUTOMATE_PORTE") == 0)
-            config.automate_porte = valueInt;
+            config->automate_porte = valueInt;
         if (strcmp(param, "GESTIONNAIRE_IP") == 0)
-            strcpy(config.gestionnaire_ip, value);
+            strcpy(config->gestionnaire_ip, value);
         if (strcmp(param, "GESTIONNAIRE_PORT") == 0)
-            config.gestionnaire_port = valueInt;
+            config->gestionnaire_port = valueInt;
         if (strcmp(param, "LOG_LEVEL") == 0)
-            config.log_level = valueInt;
+            config->log_level = valueInt;
         if (strcmp(param, "LOOP") == 0) {
             if (valueInt == -1) {
-                config.loop = 1;
+                config->loop = 1;
             } else {
-                config.loop = 0;
-                config.nbTours = valueInt;
+                config->loop = 0;
+                config->nbTours = valueInt;
             }
         }
     }
-
-
-    return &config;
 }
 
+train_data *findTrainData(int station) {
+    for (int i = 0; i < 2; ++i) {
+        if (sharedInfo.trainData[i].station == station) {
+            return &sharedInfo.trainData[i];
+        }
+    }
+    return NULL;
+}

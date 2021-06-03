@@ -8,7 +8,7 @@
 
 #define SA struct sockaddr
 
-int initSocket(char *addr, int port) {
+socketWrapper initSocket(char *addr, int port) {
     struct sockaddr_in servaddrAPI;
     int sockfd;
     // socket create and varification
@@ -31,5 +31,8 @@ int initSocket(char *addr, int port) {
         exit(0);
     } else
         log_debug("connected to the server..\n");
-    return sockfd;
+
+    socketWrapper s;
+    s.socket = sockfd;
+    return s;
 }
