@@ -76,7 +76,7 @@ void prefil_trame_3niveaux(tramexway_t *tramexway, unsigned char request_code, i
 
 void prefil_trame_5niveaux(tramexway_t *tramexway, const unsigned char *API_REQUEST);
 
-void add_two_bites_variable(tramexway_t *, int index, int value);
+void add_two_bytes_variable(tramexway_t *tramexway, int index, int value);
 
 void parseTrainConfig(char *filename, train_config * config);
 

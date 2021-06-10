@@ -27,9 +27,6 @@ typedef struct {
     int expected_cr;
 } troncon_order_t;
 
-typedef struct {
-    int expected_cr;
-} listen_order_t;
 
 typedef struct {
     int code;
@@ -49,7 +46,6 @@ typedef enum {
     aiguillage = 'A',
     troncon = 'T',
     inversion = 'I',
-    listen_order = 'L',
     prise_ressource = 'P',
     rendre_ressource = 'R',
 } order_type;
@@ -61,7 +57,6 @@ typedef struct {
         rendre_ressource_order_t rendreRessourceOrder;
         aiguillage_order_t aiguillageOrder;
         inversion_order_t inversionOrder;
-        listen_order_t listenOrder;
         troncon_order_t tronconOrder;
     } order;
     char comment[MAX_COMMENT_LENGTH];

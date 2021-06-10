@@ -11,7 +11,7 @@ all: buildDir train1.exe serveur.exe
 VPATH = lib
 
 buildDir:
-	mkdir -p build
+	@mkdir -p build
 
 build/%.o: %.c %.h
 

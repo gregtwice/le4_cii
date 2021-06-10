@@ -12,8 +12,8 @@
 #define RESTITUTION 2
 
 #define MicroSec 1
-#define MiliSec 1000*Microsec
-#define Sec 1000 * Milisec
+#define MiliSec (1000 * Microsec)
+#define Sec (1000 * Milisec)
 
 int MAX_BUF_LEN = 20;
 int se;
@@ -103,11 +103,17 @@ void *connexionHandler(void *socket_ptr) {
     return 0;
 }
 
-void *getCharHandler(void *rien) {
+_Noreturn void *getCharHandler(void *rien) {
 
 
     while (1) {
-        getchar();
+        char c = getchar();
+        if (c == 32) {
+            freeAll(1);
+            freeAll(2);
+            freeAll(3);
+            freeAll(4);
+        }
         printf("\n\nEtat des Ressources : \n[\n");
         for (int i = 0; i < 9; ++i) {
             if (ressourcesTrain[i].train_id != 0) {
@@ -124,7 +130,7 @@ void *getCharHandler(void *rien) {
 }
 
 int main() {
-    signal(SIGTERM, closeSock);
+//    signal(SIGTERM, closeSock);
     signal(SIGINT, closeSock);
     atexit(closeSock);
     for (int i = 0; i < 9; i++) {
@@ -138,10 +144,10 @@ int main() {
 // Création de la socket de réception d’écoute des appels
     se = socket(PF_INET, SOCK_STREAM, 0);
     svc.sin_family = PF_INET;
-    svc.sin_port = htons(8080);
+    svc.sin_port = htons(8081);
     svc.sin_addr.s_addr = INADDR_ANY;
     memset(&svc.sin_zero, 0, 8);
-    pthread_t threadAPI;
+
     if (bind(se, (struct sockaddr *) &svc, sizeof(svc)) != 0) {
         printf("Can't bind\n");
         exit(0);
@@ -152,6 +158,7 @@ int main() {
 
 
     listen(se, 4);
+    pthread_t threadAPI;
     while (1) {
         cltLen = sizeof(clt);
         sd = accept(se, (struct sockaddr *) &clt, &cltLen);
@@ -160,11 +167,13 @@ int main() {
             break;
         }
         int err = pthread_create(&threadAPI, NULL, connexionHandler, (void *) &sd);
+        pthread_detach(threadAPI);
         if (err != 0) {
             perror("could not create thread");
             return 1;
         }
         puts("Nouveau Train Connecté !!!\n");
+        sleep(1);
     }
     close(se);
 }

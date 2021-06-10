@@ -37,10 +37,6 @@ void private_log_trame(tramexway_t tramexway, char *file, int line) {
 
 void print_hex_array(tramexway_t tramexway) {
     log_trame(tramexway);
-//    for (int i = 0; i < tramexway.length; ++i) {
-//        printf("%X ", tramexway.trame[i]);
-//    }
-//    printf("\n");
 }
 
 void prefil_trame_3niveaux(tramexway_t *tramexway, unsigned char request_code, int station) {
@@ -70,7 +66,7 @@ void prefil_trame_5niveaux(tramexway_t *tramexway, const unsigned char *API_REQU
     tramexway->length = 8;
 }
 
-void add_two_bites_variable(tramexway_t *tramexway, int index, int value) {
+void add_two_bytes_variable(tramexway_t *tramexway, int index, int value) {
     tramexway->trame[index] = value & 0x00FF;
     tramexway->trame[index + 1] = (value >> 8);
     tramexway->length += 2;

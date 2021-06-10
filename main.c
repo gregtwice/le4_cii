@@ -1,5 +1,4 @@
 
-#include <assert.h>
 #include <pthread.h>
 #include "lib/utils.h"
 #include "lib/train_parser.h"
@@ -92,14 +91,12 @@ void *train(void *_trainName) {
     trainData->station = config.train_station;
     trainData->trainConfig = &config;
 
-
-    log_fatal("ok");
     printf("api %d - ", sockAPI->socket);
 
     log_info("Connextion au gestionnaire de ressources");
     socketWrapper sockGest = initSocket(sharedInfo.trainConfig.gestionnaire_ip, sharedInfo.trainConfig.gestionnaire_port);
-    int sockGEST = sockGest.socket;
     trainData->sockGEST = &sockGest;
+    int sockGEST = sockGest.socket;
 
 
     FILE *train1File = NULL;
@@ -190,8 +187,6 @@ int main(int argc, char *argv[]) {
 
 
     // initialisation de la struct partagée
-
-
 
     // préparation des threads et des sockets
     pthread_join(thread_socket, NULL);

@@ -101,10 +101,7 @@ static void getInstruction(const char *buffer, const order_type *orderType, char
         case inversion:
             sscanf(buffer, "%c %d", type, &trainOrder->order.inversionOrder.code);
             break;
-        case listen_order:
-            sscanf(buffer, "%c %d", type, &trainOrder->order.listenOrder.expected_cr);
 
-            break;
         case prise_ressource:
             if (buffer[2] == '2') {
                 char num;
@@ -183,10 +180,6 @@ static void print_troncon_order_t(troncon_order_t order) {
     log_info("alimentation du tronçon %d jusqu'au capteur c%d", order.code, order.expected_cr);
 }
 
-static void print_listen_order_t(listen_order_t order) {
-    log_info("Ordre d'attente du franchissment du capteur %d", order.expected_cr);
-}
-
 static void print_inversion_order_t(inversion_order_t order) {
     log_info("inversion du sens du train au tronçon %d", order.code);
 }
@@ -216,9 +209,6 @@ void printOrder(train_order_t order) {
             break;
         case inversion:
             print_inversion_order_t(order.order.inversionOrder);
-            break;
-        case listen_order:
-            print_listen_order_t(order.order.listenOrder);
             break;
         case prise_ressource:
             print_prise_ressource_order_t(order.order.priseRessourceOrder);

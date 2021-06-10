@@ -19,7 +19,6 @@ void encapsulation(unsigned char *NPDU, unsigned char *requete, int bufferSize) 
     for (int i = 0; i < bufferSize; i++) {
         requete[7 + i] = NPDU[i];
     }
-
 }
 
 
@@ -64,16 +63,16 @@ void stop(int sockfd) {
 
 
 void write_internal_word(int sockfd, int addr, int size, unsigned int *data, int station) {
-    log_trace("Ecriture vers l'automate");
+    log_trace("%d : Ecriture vers l'automate", station);
     tramexway_t tramexway;
     prefil_trame_3niveaux(&tramexway, UNITE_WRITE_OBJECT, station);
     tramexway.trame[7] = 0x68; // segment des numériques
     tramexway.trame[8] = 0x07; // type mot interne
     tramexway.length += 2;
-    add_two_bites_variable(&tramexway, 9, addr);
-    add_two_bites_variable(&tramexway, 11, size);
+    add_two_bytes_variable(&tramexway, 9, addr);
+    add_two_bytes_variable(&tramexway, 11, size);
     for (int i = 0; i < size; ++i) {
-        add_two_bites_variable(&tramexway, (int) tramexway.length, (int) data[i]);
+        add_two_bytes_variable(&tramexway, (int) tramexway.length, (int) data[i]);
     }
     log_trame(tramexway);
     send_request(sockfd, &tramexway);
@@ -85,7 +84,7 @@ void write_internal_word(int sockfd, int addr, int size, unsigned int *data, int
     trainData->turn = 2;
     wait_response(trainData);
 
-    log_trace("Ecriture terminée");
+    log_trace("%d : Ecriture terminée", station);
 }
 
 void wait_response(train_data *data) {
@@ -98,39 +97,14 @@ void read_internal_word(int sockfd, int addr, int size) {
     printf("\n\n-----------READ----------\n\n");
     tramexway_t tramexway;
     prefil_trame_3niveaux(&tramexway, UNITE_READ_OBJECT, 0);
-/*    unsigned char NPDUXWAY[MAX];
-    memset(NPDUXWAY, 0, sizeof(NPDUXWAY));
-     xway
-    NPDUXWAY[0] = 0xF0;
-    NPDUXWAY[1] = STATION_EMETEUR;
-    NPDUXWAY[2] = RESEAU_EMETEUR;
-    NPDUXWAY[3] = FIPWAY_ID; //reseau cible
-    NPDUXWAY[4] = AUTOMATE_TRAIN; //machine cible (train)
-    npdu
-    NPDUXWAY[5] = UNITE_READ_OBJECT;
-    NPDUXWAY[6] = 6;
-    NPDUXWAY[7] = 0x68; // segment des numériques
-    NPDUXWAY[8] = 0x07; // type mot interne
 
-    NPDUXWAY[9] = addr & 0x00FF;
-    NPDUXWAY[10] = addr & 0xFF00;
-    NPDUXWAY[11] = size & 0x00FF;
-    NPDUXWAY[12] = size & 0xFF00;*/
     int bufferSize = 13;
     tramexway.trame[7] = 0x68;
     tramexway.trame[8] = 0x07;
     tramexway.length += 2;
-    add_two_bites_variable(&tramexway, 9, addr);
-    add_two_bites_variable(&tramexway, 11, size);
+    add_two_bytes_variable(&tramexway, 9, addr);
+    add_two_bytes_variable(&tramexway, 11, size);
 
-/*    unsigned char requete[7 + bufferSize];
-    encapsulation(NPDUXWAY, requete, bufferSize);
-    printf("sent bytes :");
-    for (int i = 7; i < bufferSize + 7; i++) {
-        printf("%X ", requete[i]);
-    }
-    printf("\n");
-    write(sockfd, requete, sizeof(requete));*/
     print_hex_array(tramexway);
     send_request(sockfd, &tramexway);
 
@@ -156,22 +130,23 @@ void read_internal_word(int sockfd, int addr, int size) {
 }
 
 int wait_api_action(socketWrapper *sock, int station) {
-
+    // le train se met en attente d'un write var de l'automate
     pthread_mutex_lock(sharedInfo.accessMutex);
     train_data *data = findTrainData(station);
     data->turn = 2;
     pthread_mutex_unlock(sharedInfo.accessMutex);
-    log_trace("En attente du filtre de commande");
+    log_trace("%s : En attente du filtre de commande", data->trainName);
+
+    // boucle d'attente
     wait_response(data);
 
-    tramexway_t received_trame = data->lastReceived;//read_xway(sockfd);
-    log_debug("Trame reçue : ");
-    log_trame(received_trame);
+    // le train à reçu le write var, il peut répondre et continuer son traitement
+    tramexway_t received_trame = data->lastReceived;
     tramexway_t tramexway;
     prefil_trame_5niveaux(&tramexway, received_trame.trame);
-    log_debug("Trame à renvoyer : ");
+    log_trace("%s : Write Var Reçu... Envoi du CR",data->trainName);
+    log_debug("%s : Trame à renvoyer : ", data->trainName);
     log_trame(tramexway);
-    log_trace("Write Var Reçu... Envoi du CR");
     pthread_mutex_lock(&sock->writeMutex);
     send_request(sock->socket, &tramexway);
     pthread_mutex_unlock(&sock->writeMutex);
