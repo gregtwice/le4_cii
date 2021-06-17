@@ -32,7 +32,7 @@ void private_log_trame(tramexway_t tramexway, char *file, int line) {
         sprintf(temp, "%X ", tramexway.trame[i]);
         strncat(buffer, temp, 3);
     }
-    log_log(LOG_TRACE, file, line, "Trame len = %d : %s ", tramexway.length, buffer);
+    log_log(LOG_DEBUG, file, line, "Trame len = %d : %s ", tramexway.length, buffer);
 }
 
 void print_hex_array(tramexway_t tramexway) {
@@ -96,6 +96,8 @@ void parseTrainConfig(char *filename, train_config *config) {
             config->train_station = valueInt;
         if (strcmp(param, "TRAIN_RESEAU") == 0)
             config->train_reseau = valueInt;
+        if (strcmp(param, "TOUR_ADDR") == 0)
+            config->addr_tours = valueInt;
         if (strcmp(param, "TRAIN_PORTE") == 0)
             config->train_porte = valueInt;
         if (strcmp(param, "AUTOMATE_IP") == 0)
@@ -126,6 +128,7 @@ void parseTrainConfig(char *filename, train_config *config) {
 }
 
 train_data *findTrainData(int station) {
+
     for (int i = 0; i < 2; ++i) {
         if (sharedInfo.trainData[i].station == station) {
             return &sharedInfo.trainData[i];

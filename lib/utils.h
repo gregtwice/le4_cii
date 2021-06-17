@@ -39,6 +39,8 @@ typedef struct {
     int log_level;
     int loop;
     int nbTours;
+    int nbToursCommande;
+    int addr_tours;
     char run; // 0 stop - 1 run - 2 arret d'urgence
 } train_config;
 
@@ -58,6 +60,8 @@ typedef struct {
     pthread_mutex_t *accessMutex;
     train_data trainData[2];
     train_config trainConfig;
+    short polling_run;
+    short polling_tours;
 } shared_info;
 
 extern shared_info sharedInfo;

@@ -6,7 +6,7 @@ serversrc = $(wildcard serveur/*.c)
 servObjT = $(serversrc:.c=.o)
 servObj = $(subst serveur,build,$(servObjT))
 
-all: buildDir train1.exe serveur.exe
+all: buildDir train1.exe serveur.exe sauvegarde.exe
 
 VPATH = lib
 
@@ -28,3 +28,6 @@ train1.exe : main.c $(obj)
 
 serveur.exe : serveur/ressource_manager.c
 	gcc $^ -o serveur.exe -lpthread
+
+sauvegarde.exe: sauvegarde.c $(obj)
+	gcc build/*.o sauvegarde.c -o sauvegarde.exe -lpthread

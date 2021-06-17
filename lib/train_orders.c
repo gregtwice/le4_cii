@@ -11,6 +11,8 @@ int alimenter_troncon(socketWrapper * sock, int adresse, troncon_order_t troncon
     pthread_mutex_lock(&sock->writeMutex);
     unsigned int data[1] = {tronconOrder.code};
     write_internal_word(sock->socket, adresse, 1, data, station);
+    usleep(300);
+
     pthread_mutex_unlock(&sock->writeMutex);
 
     // attendre le cr de l'automate
@@ -28,6 +30,8 @@ int commander_aiguillage(socketWrapper * sock, int adresse, aiguillage_order_t a
     unsigned int data[1] = {aiguillageOrder.code};
     pthread_mutex_lock(&sock->writeMutex);
     write_internal_word(sock->socket, adresse, 1, data, station);
+    usleep(300);
+
     pthread_mutex_unlock(&sock->writeMutex);
 
     // attendre le cr de l'automate
@@ -43,10 +47,13 @@ int commander_aiguillage(socketWrapper * sock, int adresse, aiguillage_order_t a
 int commander_inversion(socketWrapper * sock, int adresse, inversion_order_t inversionOrder, int station) {
     unsigned int data[1] = {inversionOrder.code};
     usleep(1000 * 1000);
+    log_debug("MUTEX");
     pthread_mutex_lock(&sock->writeMutex);
     write_internal_word(sock->socket, adresse, 1, data, station);
-    pthread_mutex_unlock(&sock->writeMutex);
+    log_debug("WRITE");
     usleep(1000);
+    pthread_mutex_unlock(&sock->writeMutex);
+    log_debug("MUTEX_FIN");
     // attendre le cr de l'automate
     int cr = wait_api_action(sock, station);
     if (cr != inversionOrder.code) {

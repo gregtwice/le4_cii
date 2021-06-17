@@ -5,7 +5,7 @@
 #include "xway.h"
 
 
-void wait_response(train_data *data);
+
 
 void encapsulation(unsigned char *NPDU, unsigned char *requete, int bufferSize) {
     bzero(requete, sizeof(requete));
@@ -92,11 +92,57 @@ void wait_response(train_data *data) {
         usleep(300);
 }
 
+int pollRun(int sockfd, int station) {
 
-void read_internal_word(int sockfd, int addr, int size) {
+    tramexway_t tramexway;
+    prefil_trame_3niveaux(&tramexway, UNITE_READ_OBJECT, station);
+
+    tramexway.trame[7] = 0x68;
+    tramexway.trame[8] = 0x07;
+    tramexway.length += 2;
+    add_two_bytes_variable(&tramexway, 9, 160);
+    add_two_bytes_variable(&tramexway, 11, 1);
+    log_trame(tramexway);
+    send_request(sockfd, &tramexway);
+
+    return 0;
+}
+
+
+tramexway_t read_double_word(int sockfd, int addr, int size, int station) {
+    tramexway_t tramexway;
+
+    memset(tramexway.trame, 0, MAX_REQUEST_LENGTH);
+    tramexway.trame[0] = 0xF0;
+    tramexway.trame[1] = station;
+    tramexway.trame[2] = (8 << 4);
+    tramexway.trame[3] = 23; //reseau cible
+    tramexway.trame[4] = (8 << 4) + 0; //machine cible (train)
+    tramexway.trame[5] = UNITE_READ_OBJECT;
+    tramexway.trame[6] = 6;
+    tramexway.length = 7;
+
+
+    tramexway.trame[7] = 0x68;
+    tramexway.trame[8] = 0x08;
+    tramexway.length += 2;
+
+    add_two_bytes_variable(&tramexway, 9, addr);
+    add_two_bytes_variable(&tramexway, 11, size);
+
+    print_hex_array(tramexway);
+    send_request(sockfd, &tramexway);
+
+    tramexway_t *rcv = read_xway(sockfd);
+
+
+    return *rcv;
+}
+
+void read_internal_word(int sockfd, int addr, int size, int station) {
     printf("\n\n-----------READ----------\n\n");
     tramexway_t tramexway;
-    prefil_trame_3niveaux(&tramexway, UNITE_READ_OBJECT, 0);
+    prefil_trame_3niveaux(&tramexway, UNITE_READ_OBJECT, station);
 
     int bufferSize = 13;
     tramexway.trame[7] = 0x68;
@@ -135,7 +181,7 @@ int wait_api_action(socketWrapper *sock, int station) {
     train_data *data = findTrainData(station);
     data->turn = 2;
     pthread_mutex_unlock(sharedInfo.accessMutex);
-    log_trace("%s : En attente du filtre de commande", data->trainName);
+    log_debug("%s : En attente du filtre de commande", data->trainName);
 
     // boucle d'attente
     wait_response(data);
@@ -144,7 +190,7 @@ int wait_api_action(socketWrapper *sock, int station) {
     tramexway_t received_trame = data->lastReceived;
     tramexway_t tramexway;
     prefil_trame_5niveaux(&tramexway, received_trame.trame);
-    log_trace("%s : Write Var Reçu... Envoi du CR",data->trainName);
+    log_trace("%s : Write Var Reçu... Envoi du CR", data->trainName);
     log_debug("%s : Trame à renvoyer : ", data->trainName);
     log_trame(tramexway);
     pthread_mutex_lock(&sock->writeMutex);
@@ -167,3 +213,17 @@ tramexway_t *read_xway(int sockfd) {
     tramexway.length = trame_size;
     return &tramexway;
 }
+
+int pollNbTours(int sockfd, int station) {
+    tramexway_t tramexway;
+    prefil_trame_3niveaux(&tramexway, UNITE_READ_OBJECT, station);
+    tramexway.trame[7] = 0x68;
+    tramexway.trame[8] = 0x07;
+    tramexway.length += 2;
+    add_two_bytes_variable(&tramexway, 9, 700);
+    add_two_bytes_variable(&tramexway, 11, 4);
+    log_trame(tramexway);
+    send_request(sockfd, &tramexway);
+    return 0;
+}
+

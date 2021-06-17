@@ -57,14 +57,20 @@ void write_internal_word(int sockfd, int addr, int size, unsigned int *data, int
  * @param addr l'adresse du segment mémoire à lire
  * @param size le nombre d'éléments à lire
  */
-void read_internal_word(int sockfd, int addr, int size);
+void read_internal_word(int sockfd, int addr, int size, int station);
+
+int pollRun(int sockfd, int station);
+
+int pollNbTours(int sockfd, int station);
+
+tramexway_t read_double_word(int sockfd, int addr, int size, int station);
 
 /**
  * Attend un Cr de la part de l'automate après une action
  * @param sock
  * @return
  */
-int wait_api_action(socketWrapper * sock, int station);
+int wait_api_action(socketWrapper *sock, int station);
 
 /**
  * Fonction qui attend un cr de l'automate
@@ -72,5 +78,9 @@ int wait_api_action(socketWrapper * sock, int station);
  * @return
  */
 tramexway_t *read_xway(int sockfd);
+
+
+void wait_response(train_data *data);
+
 
 #endif //CII_XWAY_H
