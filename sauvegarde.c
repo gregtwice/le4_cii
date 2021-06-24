@@ -7,8 +7,8 @@
 #include "lib/xway.h"
 #include <stdio.h>
 
-#define ADDR_T1_DEBUT 900
-#define ADDR_T1_FIN 998
+#define ADDR_T1_DEBUT 848
+#define ADDR_T1_FIN 1010
 
 
 shared_info sharedInfo;
@@ -16,14 +16,15 @@ shared_info sharedInfo;
 
 int main() {
 
-    log_set_level(4);
+    log_set_level(0);
     socketWrapper sw = initSocket("10.22.205.203", 502);
-
-    FILE *ficT1 = fopen("apprentissage/train1.txt", "wt");
+    char filename[80];
+    sprintf(filename,"apprentissage/train-%d-%d.txt",ADDR_T1_DEBUT,ADDR_T1_FIN);
+    FILE *ficT1 = fopen(filename, "wt");
     int nbElements = ADDR_T1_FIN - ADDR_T1_DEBUT;
 
-    for (int i = 0; i < nbElements; i += 20) {
-        tramexway_t tramexway = read_double_word(sw.socket, ADDR_T1_DEBUT + i, 10, 51);
+    for (int i = 0; i < nbElements; i += 10) {
+        tramexway_t tramexway = read_double_word(sw.socket, ADDR_T1_DEBUT + i, 5, 51);
         log_trame(tramexway);
         int tete = 7;
         for (int j = tete; j < tramexway.length; j += 4) {
@@ -33,10 +34,10 @@ int main() {
                                     (tramexway.trame[j + 1] << 8) +
                                     (tramexway.trame[j + 2] << 16) +
                                     (tramexway.trame[j + 3] << 24);
-                printf("res %d = %ld\n", ((j - 7) / 4) * 2 + 900 + i, res);
+                printf("res %d = %ld\n", ((j - 7) / 4) * 2 + ADDR_T1_DEBUT + i, res);
                 fprintf(ficT1, "%ld\n", res);
             }
         }
-        sleep(1);
+        usleep(1500);
     }
 }
