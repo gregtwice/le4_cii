@@ -144,7 +144,7 @@ int main() {
 // Création de la socket de réception d’écoute des appels
     se = socket(PF_INET, SOCK_STREAM, 0);
     svc.sin_family = PF_INET;
-    svc.sin_port = htons(8081);
+    svc.sin_port = htons(8080);
     svc.sin_addr.s_addr = INADDR_ANY;
     memset(&svc.sin_zero, 0, 8);
 

@@ -46,7 +46,6 @@ void *socketListener() {
                                 break;
                             case 53:
                                 d->trainConfig->run = (char) (octet & (0x40));
-                                printf("%d ICI PUTAIN",d->trainConfig->run);
                                 break;
                             case 54:
                                 d->trainConfig->run = (char) (octet & (0x80));
@@ -57,10 +56,10 @@ void *socketListener() {
                 sharedInfo.polling_run = 0;
             } else if (sharedInfo.polling_tours == 1) {
                 for (int i = 51; i <= 54; ++i) {
-                    int currentIndex = i - 51;
+                    int currentIndex = (i - 51) * 2;
                     train_data *d = findTrainData(station);
                     if (d != NULL) {
-                        unsigned int val = tramexway->trame[7 + currentIndex] + tramexway->trame[7 + currentIndex + 1];
+                        unsigned int val = tramexway->trame[7 + currentIndex] + (tramexway->trame[7 + currentIndex + 1] << 8);
                         d->trainConfig->nbToursCommande = (int) val;
                     }
                 }
@@ -70,40 +69,6 @@ void *socketListener() {
             continue;
         }
         data->lastReceived = *tramexway;
-        /*if (tramexway->trame[5] == UNITE_WRITE_OBJECT) {
-            log_debug("C'est un write var !!");
-            log_trame(*tramexway);
-            // l'automate envoie une donnée (PC view ou Cr ?)
-            // vérifions
-            tramexway_t tramexway_cr;
-            prefil_trame_5niveaux(&tramexway_cr, tramexway->trame);
-            // test de l'arret d'urgence
-            unsigned int adresse = tramexway->trame[9];
-            adresse += (tramexway->trame[10] << 8);
-            unsigned int valeur = tramexway->trame[11];
-            valeur += (tramexway->trame[12] << 8);
-            short shouldBreak = 0;
-            if (adresse == PC_VUE_EMERGENCY_ADDR && valeur == PC_VUE_EMERGENCY) {
-                // panic
-                close(data->sockGEST->socket);
-                data->trainConfig->run = 2;
-//                break;
-            } else if (adresse == PC_VUE_NBTR_ADDR) {
-                log_info("NB tours : %d", valeur);
-                shouldBreak = 1;
-                data->trainConfig->nbToursCommande = (int) valeur;
-                data->trainConfig->nbTours = (int) valeur;
-            } else if (adresse == PC_VUE_RUN_ADDR) {
-                if (valeur == UNITE_RUN) data->trainConfig->run = 1;
-                else if (valeur == UNITE_STOP) data->trainConfig->run = 0;
-                shouldBreak = 1;
-            }
-            if (shouldBreak) {
-                send_request(sockAPI->socket, tramexway);
-                pthread_mutex_unlock(sharedInfo.accessMutex);
-                continue;
-            }
-        }*/
         // ce n'est pas critique, on laisse faire le train
         data->turn = 1;
         log_debug("Allowed %s to resume", data->trainName);
@@ -162,11 +127,6 @@ _Noreturn void *train(void *_trainName) {
     strcat(path, configExt);
 
 
-    /* if (trainData->station == 51) {
-         trainData->trainConfig->run = 1;
-         trainData->trainConfig->nbTours = 5;
-     }*/
-
     train1File = fopen(path, "r");
 
     if (train1File == NULL) {
@@ -177,15 +137,14 @@ _Noreturn void *train(void *_trainName) {
     parseTrainSequence(train1File, &trainSequence);
 
     do {
+        if (!config.run)
+            trainData->trainConfig->nbTours = trainData->trainConfig->nbToursCommande;
         while (config.run == 0) {
             usleep(10000);
         }
-        trainData->trainConfig->nbTours = trainData->trainConfig->nbToursCommande;
         for (int i = 0; i < trainSequence.nOrders; ++i) {
             if (trainData->trainConfig->run == 2) {
                 pthread_exit(NULL);
-                trainData->trainConfig->run = 0;
-                break;
             }
             usleep(50000);
             printOrder(trainSequence.orders[i]);
@@ -222,7 +181,6 @@ _Noreturn void *train(void *_trainName) {
 }
 
 
-
 int main(int argc, char *argv[]) {
     // vérification des arguments
     if (argc < 2) {
@@ -243,43 +201,6 @@ int main(int argc, char *argv[]) {
     log_info("Connextion à l'automate");
     socketWrapper sockApi = initSocket(_exe_self_config.automate_ip, _exe_self_config.automate_port);
     pthread_mutex_init(&sockApi.writeMutex, NULL);
-
-/*
-    tramexway_t tramexway;
-
-    unsigned int data[1] = {0};
-//    write_internal_word(sockApi.socket, 1000, 1, data, 51);
-    memset(tramexway.trame, 0, MAX_REQUEST_LENGTH);
-
-    tramexway.trame[0] = 0xF0;
-    tramexway.trame[1] = 51;
-    tramexway.trame[2] = (8 << 4) + 0;
-    tramexway.trame[3] = sharedInfo.trainConfig.automate_station; //reseau cible
-    tramexway.trame[4] = (sharedInfo.trainConfig.automate_reseau << 4) + sharedInfo.trainConfig.automate_porte; //machine cible (train)
-    tramexway.trame[5] = UNITE_WRITE_OBJECT;
-    tramexway.trame[6] = 6;
-    tramexway.length = 7;
-    log_info("ICI0");
-    tramexway.trame[7] = 0x68; // segment des numériques
-    tramexway.trame[8] = 0x07; // type mot interne
-    tramexway.length += 2;
-    log_info("ICI1");
-    add_two_bytes_variable(&tramexway, 9, 1000);
-    add_two_bytes_variable(&tramexway, 11, 1);
-    log_info("ICI2");
-    for (int i = 0; i < 1; ++i) {
-        add_two_bytes_variable(&tramexway, (int) tramexway.length, (int) data[i]);
-    }
-    log_info("ICI3");
-    log_trame(tramexway);
-    send_request(sockApi.socket, &tramexway);
-
-
-    tramexway_t *rcv = read_xway(sockApi.socket);
-
-
-    log_info("%d", rcv->length);
-*/
 
     sharedInfo.sockAPI = &sockApi;
     pthread_t thread_socket;
@@ -302,7 +223,7 @@ int main(int argc, char *argv[]) {
     while (1) {
         usleep(1000 * 1000);
         for (int i = 1; i < argc; ++i) {
-            if (sharedInfo.trainData[i-1].turn == 2){
+            if (sharedInfo.trainData[i - 1].turn == 2) {
                 usleep(300);
             }
         }
